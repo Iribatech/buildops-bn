@@ -8,6 +8,8 @@ import { OrganizationInvitation } from '../invitation/invitation.entity.js';
 import { Badge } from '../badge/badge.entity.js';
 import { Team } from '../team/team.entity.js';
 import { TeamMember } from '../team/team-member.entity.js';
+import { Department } from '../department/department.entity.js';
+import { HumanResource } from '../human-resource/human-resource.entity.js';
 import { Client } from '../client/client.entity.js';
 import { Project } from '../project/project.entity.js';
 import { Task } from '../task/task.entity.js';
@@ -33,6 +35,8 @@ export const ENTITIES = [
   Badge,
   Team,
   TeamMember,
+  Department,
+  HumanResource,
   Client,
   Project,
   Task,

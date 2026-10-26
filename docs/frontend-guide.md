@@ -22,15 +22,16 @@ generated OpenAPI document (see [Live spec](#1-live-spec)).
 Every route below lives under the global prefix `api/v1` — include it in your
 `baseURL` so you never hard-code it in a path. `PORT` overrides `3000`.
 
-The document is published **one module at a time**. It currently covers **119
-endpoints** in 16 tag groups — `auth`, `plans`, `subscription`, `organizations`,
-`roles`, `invitations`, `teams`, `clients`, `projects`, `badges`, `tasks`,
-`subtasks`, `time-entries`, `time-complexity`, `dashboard` and `settings` — from
-`POST /auth/register` through the invitation flow. The liveness probe is the
-only controller still hidden with `@ApiExcludeController()`; a route that is
-missing from the document is not published yet. Where the document and this
-guide disagree, treat the Swagger document as the authority on shape and this
-guide as the authority on behaviour.
+The document is published **one module at a time**. It currently covers **139
+endpoints** in 20 tag groups — `auth`, `plans`, `subscription`, `billing`,
+`organizations`, `roles`, `invitations`, `teams`, `departments`,
+`human-resources`, `clients`, `projects`, `badges`, `tasks`, `subtasks`,
+`notifications`, `time-entries`, `time-complexity`, `dashboard` and `settings` —
+from `POST /auth/register` through the invitation flow. The
+liveness probe is the only controller still hidden with
+`@ApiExcludeController()`; a route that is missing from the document is not
+published yet. Where the document and this guide disagree, treat the Swagger
+document as the authority on shape and this guide as the authority on behaviour.
 
 Do not hand-maintain a client from this document: generate types from
 `docs/openapi.json` (openapi-typescript, Orval, `swagger-typescript-api`) and use
@@ -537,7 +538,9 @@ The API is the only enforcement point: hiding a button is UX, not security. Ever
 `organization.delete`, `member.view`, `member.invite`, `member.update`,
 `member.remove`, `role.view`, `role.create`, `role.update`, `role.delete`,
 `role.assign`, `permission.view`, `team.view`, `team.create`, `team.update`,
-`team.delete`, `team.member.add`, `team.member.remove`, `client.view`,
+`team.delete`, `team.member.add`, `team.member.remove`, `department.view`,
+`department.create`, `department.update`, `human_resource.view`,
+`human_resource.create`, `human_resource.update`, `client.view`,
 `client.create`, `client.update`, `client.delete`, `project.view`,
 `project.create`, `project.update`, `project.delete`, `badge.view`,
 `badge.create`, `badge.update`, `badge.delete`, `task.view`, `task.create`,
@@ -752,7 +755,10 @@ ordinary read, it does not destroy it, and the response says so.
 
 Trash and restore exist for **clients, projects, tasks, subtasks, time entries,
 badges and teams**. `time-complexity` records and organization members are not
-soft-deleted; those deletes are final.
+soft-deleted; those deletes are final. A department has no delete route at all:
+deactivate it instead (§9.5). Project human resources work the same way: they are
+project staffing, so they are deactivated and reactivated rather than removed
+(§9.6).
 
 A trash entry is always the same shape:
 
@@ -795,7 +801,8 @@ expected one row and reads forty-seven has just been told something important
 about what the button does.
 
 Leaves need no confirmation: `clients`, `badges`, `teams` and a single
-`time entry` are removed with a plain `DELETE`.
+`time entry` are removed with a plain `DELETE`. Departments are never removed;
+use the activate/deactivate routes in §9.5.
 
 #### What a restore brings back
 
@@ -993,7 +1000,56 @@ team soft-deletes it along with its memberships and task assignments, but
 `GET /teams/trash` and `POST /teams/{teamId}/restore` to see it and bring it
 back; see [8.4](#84-deleting-trash-and-restore).
 
-### 9.5 Clients, projects, badges
+### 9.5 Departments
+
+All routes: `Org` required via header.
+
+| Method   | Path                                       | Perm                 | Errors              |
+| -------- | ------------------------------------------ | -------------------- | ------------------- |
+| `GET`    | `/departments` `?page&limit`               | `department.view`    | `403`               |
+| `POST`   | `/departments`                             | `department.create`  | `400`, `403`        |
+| `GET`    | `/departments/{departmentId}`              | `department.view`    | `403`, `404`        |
+| `PATCH`  | `/departments/{departmentId}`              | `department.update`  | `400`, `403`, `404` |
+| `POST`   | `/departments/{departmentId}/deactivate`   | `department.update`  | `403`, `404`        |
+| `POST`   | `/departments/{departmentId}/activate`     | `department.update`  | `403`, `404`        |
+
+Departments are organization-scoped groups with a name, optional description and
+`status: "active" | "inactive"`. They are independent of teams in this release:
+creating a department does not move or assign teams.
+
+There is no `DELETE`, trash or restore route. Departments stay in every list so
+historical references remain valid; take one out of use with
+`POST /departments/{departmentId}/deactivate` and bring it back with
+`POST /departments/{departmentId}/activate`. Both are idempotent and answer the
+department. Status is not writable through `PATCH`: create/update bodies that
+include `status` are `400`.
+
+### 9.6 Project human resources
+
+Every route is nested under a project and needs `Org` via header.
+
+| Method   | Path                                                            | Perm                      | Errors              |
+| -------- | --------------------------------------------------------------- | ------------------------- | ------------------- |
+| `GET`    | `/projects/{projectId}/human-resources` `?page&limit&role&status` | `human_resource.view`     | `400`, `403`, `404` |
+| `POST`   | `/projects/{projectId}/human-resources`                          | `human_resource.create`   | `400`, `403`, `404` |
+| `GET`    | `/projects/{projectId}/human-resources/{humanResourceId}`        | `human_resource.view`     | `403`, `404`        |
+| `PATCH`  | `/projects/{projectId}/human-resources/{humanResourceId}`        | `human_resource.update`   | `400`, `403`, `404` |
+| `POST`   | `/projects/{projectId}/human-resources/{humanResourceId}/deactivate` | `human_resource.update` | `403`, `404`      |
+| `POST`   | `/projects/{projectId}/human-resources/{humanResourceId}/activate`   | `human_resource.update` | `403`, `404`      |
+
+A project keeps its own people register: the same person on two projects is two
+records, each with its own allocation and rate. `role` is `human_resource` or
+`finance_manager`; `allocationPercent` is 1–100 (default 100); `hourlyRate` is
+optional, in the organization currency, and returned as a decimal string.
+`email`, `phone`, `startDate`, `endDate` and `notes` are optional.
+
+Status is `active` or `inactive` and is not writable through `PATCH`. Use
+`deactivate` when somebody leaves the project and `activate` to bring them back;
+both are idempotent. Records are never deleted, so cost and staffing history
+survives the assignment. This register is restricted to the Owner and Project
+Manager role templates by default.
+
+### 9.7 Clients, projects, badges
 
 | Resource | List                           | Create                            | Read                                       | Update                   | Delete                    |
 | -------- | ------------------------------ | --------------------------------- | ------------------------------------------ | ------------------------ | ------------------------- |
@@ -1017,7 +1073,7 @@ before deleting a client that still has projects. `DELETE /projects/{projectId}`
 answers `200 { message, deleted }`: `deleted` counts the project plus every task,
 subtask and time entry that went with it.
 
-### 9.6 Tasks and subtasks
+### 9.8 Tasks and subtasks
 
 | Method   | Path                                                            | Perm                                      | Errors              |
 | -------- | --------------------------------------------------------------- | ----------------------------------------- | ------------------- |
@@ -1050,7 +1106,7 @@ recoverable, that confirmation is about the size of the delete, not about
 irreversibility — say what will disappear, then let them undo it later. See
 [8.4](#84-deleting-trash-and-restore).
 
-### 9.7 Time entries and timers
+### 9.9 Time entries and timers
 
 | Method   | Path                                                   | Perm                     | Errors                     |
 | -------- | ------------------------------------------------------ | ------------------------ | -------------------------- |
@@ -1084,7 +1140,7 @@ irreversibility — say what will disappear, then let them undo it later. See
   deleted — restoring time into a deleted subtask is `409`. A running timer
   deleted mid-flight is in the trash like any other entry.
 
-### 9.8 Time complexity
+### 9.10 Time complexity
 
 | Method   | Path                                                          | Perm                     | Errors                     |
 | -------- | ------------------------------------------------------------- | ------------------------ | -------------------------- |
@@ -1106,7 +1162,7 @@ per task/subtask combination — a second one is `409`; archiving the first
 `variance` is `within | under | over`. A `null` `actualSeconds` means no time was
 logged against that subtask.
 
-### 9.9 Dashboard
+### 9.11 Dashboard
 
 | Method | Path                  | Perm                   |
 | ------ | --------------------- | ---------------------- |
@@ -1142,6 +1198,9 @@ Shared query parameters on `overview`, `projects` and `clients`:
 | `user.status`                                         | `active`, `inactive`, `suspended` (only the first two via `PATCH /auth/profile`) |
 | `subscription.status`                                 | `trial`, `active`, `cancelled`, `suspended`                                      |
 | `organization.status`, `team.status`, `client.status` | `active`, `inactive`, `archived`                                                 |
+| `department.status`                                   | `active`, `inactive`                                                             |
+| `humanResource.role`                                  | `human_resource`, `finance_manager`                                              |
+| `humanResource.status`                                | `active`, `inactive`                                                             |
 | `teamMember.status`                                   | `pending`, `active`, `inactive`, `removed`                                       |
 | `teamMember.role`                                     | `lead`, `member`, `observer`                                                     |
 | `member.status`                                       | `active`, `deactivated`                                                          |
@@ -1189,6 +1248,14 @@ strings, not objects).
 
 **Team**: `id`, `organizationId` ro, `name`, `description | null`, `status`,
 `createdAt` ro.
+
+**Department**: `id`, `organizationId` ro, `name`, `description | null`,
+`status`, `createdAt`/`updatedAt` ro.
+
+**HumanResource**: `id`, `organizationId` ro, `projectId` ro, `name`,
+`email | null`, `phone | null`, `role`, `allocationPercent`,
+`hourlyRate | null` (decimal string), `startDate | null`, `endDate | null`,
+`notes | null`, `status`, `createdAt`/`updatedAt` ro.
 
 **TeamMember**: `id`, `teamId`, `userId`, `user | null` (embedded user),
 `role`, `status`, `joinedAt` ro. Note both `userId` and `user` are returned.
@@ -1296,10 +1363,13 @@ discovering them in QA:
 5. **No filtering or sorting on most lists.** Only the filters listed per route
    exist; there is no `sort`, `search`, `orderBy` or date-range parameter on list
    endpoints.
-6. **No soft deletes.** Deletes are hard, and the only "archived" concept is the
-   `status` enum on organizations, teams, clients and time-complexity estimates —
-   plus `member.status`, which suspends a membership instead of deleting it
-   (§9.3). Nothing a delete removed is recoverable from the UI.
+6. **Soft delete coverage is not uniform.** Clients, projects, tasks, subtasks,
+   time entries, badges and teams have trash/restore (§8.4); time-complexity
+   records and organization members are deleted for good. Departments and project
+   human resources have no delete route: `active`/`inactive` is their lifecycle
+   (§9.5, §9.6). The `status` enum on organizations, teams and clients, plus
+   time-complexity estimates, is an archive flag, not a delete. `member.status` suspends a membership instead of
+   removing it (§9.3).
 7. **`?userId` on time entries is ignored without `view_all`** — a silent
    filter, not a `403`.
 8. **Swagger docs, not this file, are the schema source of truth.** If the two

@@ -8,12 +8,13 @@ NestJS + TypeORM backend powering BuildOps (multi-tenant project/task/time track
   (httpOnly cookie + CSRF double-submit, with per-device session list and "log out
 everywhere")
 - Multi-tenant model: Subscription → Organization → Users, Roles, Permissions
-- Resources: Clients, Projects, Teams, Badges, Tasks/Subtasks, Milestones, Time Entries, Time Complexity, Dashboard
+- Resources: Clients, Projects, Project HR, Teams, Departments, Badges, Tasks/Subtasks, Milestones, Time Entries, Time Complexity, Dashboard
 - In-app notifications as the "what's new" feed: targeted assignment/status events
   plus lifecycle broadcasts (created/updated/deleted) delivered to owners and
   project managers, with unread counts and read/read-all inbox routes
-- Soft delete with a trash and a restore route for every resource that can be
-  deleted; cascading deletes are recoverable and report how many rows they took
+- Soft delete with trash and restore routes for content that can be removed;
+  cascading deletes are recoverable and report how many rows they took.
+  Departments and project human resources use activate/deactivate instead
 - Global validation, CORS, Helmet, rate limiting
 - OpenAPI 3.0 (Swagger UI) as the single documentation source
 
@@ -43,7 +44,7 @@ Outside `NODE_ENV=production`, verification and reset flows do not need SMTP at 
 
 ## Architecture
 
-Domain modules under `src/` (feature-first): `auth`, `subscription`, `organization`, `role`, `team`, `client`, `project`, `badge`, `task`, `subtask`, `milestone`, `notification`, `time-entry`, `time-complexity`, `dashboard`, `plan`, `user`, `mail`.
+Domain modules under `src/` (feature-first): `auth`, `subscription`, `organization`, `role`, `team`, `department`, `human-resource`, `client`, `project`, `badge`, `task`, `subtask`, `milestone`, `notification`, `time-entry`, `time-complexity`, `dashboard`, `plan`, `user`, `mail`.
 Global guards: `ThrottlerGuard` (rate limiting). Org-scoped routes require `x-organization-id` or `:organizationId` param via `@Protected()`, permissions via `@RequirePermissions(...)`.
 
 ## Commands
@@ -92,6 +93,14 @@ soft-deleted: `DELETE` hides a record from every ordinary read, `GET /{resource}
 lists what is hidden, and `POST /{resource}/{id}/restore` brings a record back.
 Restoring returns exactly what went down with the delete that flagged the record,
 and a child whose parent is still deleted cannot be restored on its own.
+
+Departments and project human resources are the exceptions. They are
+organizational structure and project staffing, not content: there is no trash or
+restore route. A department stays visible with `status: "active" | "inactive"`,
+changed through `POST /departments/{departmentId}/deactivate` and
+`POST /departments/{departmentId}/activate`. A person on a project follows the
+same lifecycle at
+`POST /projects/{projectId}/human-resources/{humanResourceId}/deactivate`.
 
 Deleting a project, task or subtask takes the work and time logged under it, and
 answers `409` until the request carries `?confirm=cascade`; the `200` then reports

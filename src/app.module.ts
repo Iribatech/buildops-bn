@@ -21,6 +21,8 @@ import { OrganizationModule } from './organization/organization.module.js';
 import { RoleModule } from './role/role.module.js';
 import { InvitationModule } from './invitation/invitation.module.js';
 import { TeamModule } from './team/team.module.js';
+import { DepartmentModule } from './department/department.module.js';
+import { HumanResourceModule } from './human-resource/human-resource.module.js';
 import { ClientModule } from './client/client.module.js';
 import { ProjectModule } from './project/project.module.js';
 import { BadgeModule } from './badge/badge.module.js';
@@ -109,6 +111,8 @@ import { SettingsModule } from './settings/settings.module.js';
     RoleModule,
     InvitationModule,
     TeamModule,
+    DepartmentModule,
+    HumanResourceModule,
     ClientModule,
     ProjectModule,
     BadgeModule,

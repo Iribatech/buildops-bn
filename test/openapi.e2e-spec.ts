@@ -138,6 +138,13 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   // Soft deletes: the trash listing and the restore of one record.
   ['GET', '/teams/trash', ['200']],
   ['POST', '/teams/{teamId}/restore', ['201']],
+  // Departments use an active/inactive lifecycle, not trash and restore.
+  ['POST', '/departments', ['201']],
+  ['GET', '/departments', ['200']],
+  ['GET', '/departments/{departmentId}', ['200']],
+  ['PATCH', '/departments/{departmentId}', ['200']],
+  ['POST', '/departments/{departmentId}/deactivate', ['200']],
+  ['POST', '/departments/{departmentId}/activate', ['200']],
   // Clients.
   ['POST', '/clients', ['201']],
   ['GET', '/clients', ['200']],
@@ -162,6 +169,29 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['DELETE', '/projects/{projectId}', ['200']],
   ['GET', '/projects/trash', ['200']],
   ['POST', '/projects/{projectId}/restore', ['201']],
+  // Project human resources use an active/inactive lifecycle, not trash.
+  ['POST', '/projects/{projectId}/human-resources', ['201']],
+  ['GET', '/projects/{projectId}/human-resources', ['200']],
+  [
+    'GET',
+    '/projects/{projectId}/human-resources/{humanResourceId}',
+    ['200'],
+  ],
+  [
+    'PATCH',
+    '/projects/{projectId}/human-resources/{humanResourceId}',
+    ['200'],
+  ],
+  [
+    'POST',
+    '/projects/{projectId}/human-resources/{humanResourceId}/deactivate',
+    ['200'],
+  ],
+  [
+    'POST',
+    '/projects/{projectId}/human-resources/{humanResourceId}/activate',
+    ['200'],
+  ],
   // Tasks, and the subtasks nested under them.
   ['POST', '/tasks', ['201']],
   ['GET', '/tasks', ['200']],

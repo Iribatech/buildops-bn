@@ -4990,6 +4990,1356 @@
         ]
       }
     },
+    "/departments": {
+      "post": {
+        "description": "Creates an active department inside the active organization.",
+        "operationId": "DepartmentController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Department created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a department",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated departments of the active organization, active and inactive alike.",
+        "operationId": "DepartmentController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of departments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List departments",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.view"
+        ]
+      }
+    },
+    "/departments/{departmentId}": {
+      "get": {
+        "description": "One department of the active organization.",
+        "operationId": "DepartmentController_findOne",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The department",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a department",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.view"
+        ]
+      },
+      "patch": {
+        "description": "Renames a department or updates its description.",
+        "operationId": "DepartmentController_update",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The department as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a department",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.update"
+        ]
+      }
+    },
+    "/departments/{departmentId}/deactivate": {
+      "post": {
+        "description": "Marks a department inactive without removing it or its history. Idempotent for a department that is already inactive.",
+        "operationId": "DepartmentController_deactivate",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The department, now inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate a department",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.update"
+        ]
+      }
+    },
+    "/departments/{departmentId}/activate": {
+      "post": {
+        "description": "Returns an inactive department to active use. Idempotent for a department that is already active.",
+        "operationId": "DepartmentController_activate",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The department, now active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate a department",
+        "tags": [
+          "departments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "department.update"
+        ]
+      }
+    },
+    "/projects/{projectId}/human-resources": {
+      "post": {
+        "description": "Creates an active human-resource or finance-manager entry in the project. The project must belong to the active organization.",
+        "operationId": "HumanResourceController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHumanResourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Human resource created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourceResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a person to a project",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated people registered on a project, active and inactive alike, optionally filtered by project function or status.",
+        "operationId": "HumanResourceController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project function",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "human_resource",
+                "finance_manager"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by lifecycle status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of project human resources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourcePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List project human resources",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.view"
+        ]
+      }
+    },
+    "/projects/{projectId}/human-resources/{humanResourceId}": {
+      "get": {
+        "description": "One person registered on the project, including rate and allocation.",
+        "operationId": "HumanResourceController_findOne",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "humanResourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project human resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourceResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a project human resource",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.view"
+        ]
+      },
+      "patch": {
+        "description": "Changes the person, function, allocation, rate, dates or notes. Status is controlled by activate/deactivate.",
+        "operationId": "HumanResourceController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "humanResourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHumanResourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project human resource as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourceResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a project human resource",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.update"
+        ]
+      }
+    },
+    "/projects/{projectId}/human-resources/{humanResourceId}/deactivate": {
+      "post": {
+        "description": "Marks the person inactive without removing the project history. Idempotent for somebody already inactive.",
+        "operationId": "HumanResourceController_deactivate",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "humanResourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project human resource, now inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourceResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate a project human resource",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.update"
+        ]
+      }
+    },
+    "/projects/{projectId}/human-resources/{humanResourceId}/activate": {
+      "post": {
+        "description": "Returns an inactive person to active project use. Idempotent for somebody already active.",
+        "operationId": "HumanResourceController_activate",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "humanResourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project human resource, now active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanResourceResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate a project human resource",
+        "tags": [
+          "human-resources"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "human_resource.update"
+        ]
+      }
+    },
     "/clients": {
       "post": {
         "description": "Creates a CRM record in the active organization. Email is unique across clients.",
@@ -12680,6 +14030,14 @@
       "description": "Teams within an organization"
     },
     {
+      "name": "departments",
+      "description": "Departments within an organization"
+    },
+    {
+      "name": "human-resources",
+      "description": "People, functions, rates and allocations on a project"
+    },
+    {
       "name": "clients",
       "description": "Clients within an organization"
     },
@@ -13692,6 +15050,12 @@
                 "team.delete",
                 "team.member.add",
                 "team.member.remove",
+                "department.view",
+                "department.create",
+                "department.update",
+                "human_resource.view",
+                "human_resource.create",
+                "human_resource.update",
                 "client.view",
                 "client.create",
                 "client.update",
@@ -13794,6 +15158,12 @@
                 "team.delete",
                 "team.member.add",
                 "team.member.remove",
+                "department.view",
+                "department.create",
+                "department.update",
+                "human_resource.view",
+                "human_resource.create",
+                "human_resource.update",
                 "client.view",
                 "client.create",
                 "client.update",
@@ -14646,6 +16016,361 @@
               "inactive",
               "removed"
             ]
+          }
+        }
+      },
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Preconstruction"
+          },
+          "description": {
+            "type": "string",
+            "example": "Estimating, bid preparation, and preconstruction planning."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "DepartmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f"
+          },
+          "name": {
+            "type": "string",
+            "example": "Preconstruction"
+          },
+          "description": {
+            "type": "object",
+            "example": "Estimating, bid preparation, and preconstruction planning.",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "example": "active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DepartmentPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartmentResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Preconstruction & Estimating"
+          },
+          "description": {
+            "type": "string",
+            "example": "Estimating, bid preparation, and preconstruction planning."
+          }
+        }
+      },
+      "CreateHumanResourceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "string",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "description": "Work email address"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1 503 555 0142"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "human_resource",
+              "finance_manager"
+            ],
+            "example": "human_resource",
+            "description": "The project function this person fills"
+          },
+          "allocationPercent": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 100,
+            "description": "Share of a full-time schedule committed to this project"
+          },
+          "hourlyRate": {
+            "type": "number",
+            "example": 95.5,
+            "description": "Hourly rate in the organization currency, DECIMAL(10,2)"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-11-02"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2027-08-27"
+          },
+          "notes": {
+            "type": "string",
+            "example": "HR lead for field hiring and onboarding."
+          }
+        },
+        "required": [
+          "name",
+          "role"
+        ]
+      },
+      "HumanResourceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f6b7c8d9-0a1b-4c2d-8e3f-4a5b6c7d8e9f"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
+          },
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "object",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1 503 555 0142",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "human_resource",
+              "finance_manager"
+            ],
+            "example": "human_resource"
+          },
+          "allocationPercent": {
+            "type": "number",
+            "example": 60
+          },
+          "hourlyRate": {
+            "type": "object",
+            "example": "95.50",
+            "nullable": true,
+            "description": "DECIMAL(10,2) returned as a string to preserve precision"
+          },
+          "startDate": {
+            "type": "object",
+            "example": "2026-11-02",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "object",
+            "example": "2027-08-27",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "example": "active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "name",
+          "role",
+          "allocationPercent",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "HumanResourcePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HumanResourceResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdateHumanResourceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "object",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "nullable": true,
+            "description": "Null clears the stored address"
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1 503 555 0142",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "human_resource",
+              "finance_manager"
+            ],
+            "example": "human_resource"
+          },
+          "allocationPercent": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "example": 60
+          },
+          "hourlyRate": {
+            "type": "object",
+            "example": 102.25,
+            "nullable": true
+          },
+          "startDate": {
+            "type": "object",
+            "example": "2026-11-02",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "object",
+            "example": "2027-08-27",
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "nullable": true
           }
         }
       },

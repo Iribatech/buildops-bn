@@ -25,6 +25,8 @@ const TAGS: [name: string, description: string][] = [
     'Invitations by email: sending, listing, revoking and accepting one',
   ],
   ['teams', 'Teams within an organization'],
+  ['departments', 'Departments within an organization'],
+  ['human-resources', 'People, functions, rates and allocations on a project'],
   ['clients', 'Clients within an organization'],
   ['projects', 'Projects within an organization'],
   ['badges', 'Badges within an organization'],

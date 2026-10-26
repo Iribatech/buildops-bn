@@ -3125,6 +3125,286 @@ describe('published contract vs runtime (e2e)', () => {
     });
   });
 
+  describe('departments', () => {
+    let preconstructionId = '';
+    let fieldOperationsId = '';
+
+    it('POST /departments returns 400, 401, 403 and 201', async () => {
+      await probe(
+        'post',
+        '/departments',
+        (req) => req.send({ name: 'Preconstruction' }),
+        '401',
+        'no token',
+      );
+
+      await probe(
+        'post',
+        '/departments',
+        (req) => asOutsider(req).send({ name: 'Field Operations' }),
+        '403',
+        'not a member',
+      );
+
+      await probe(
+        'post',
+        '/departments',
+        (req) => asOwner(req).send({ name: '   ' }),
+        '400',
+        'empty name',
+      );
+
+      const preconstruction = await probe(
+        'post',
+        '/departments',
+        (req) =>
+          asOwner(req).send({
+            name: ' Preconstruction ',
+            description:
+              'Estimating, bid preparation, and preconstruction planning.',
+          }),
+        '201',
+      );
+      preconstructionId = preconstruction.body.id;
+      expect(preconstruction.body).toMatchObject({
+        name: 'Preconstruction',
+        status: 'active',
+      });
+
+      const fieldOperations = await probe(
+        'post',
+        '/departments',
+        (req) =>
+          asOwner(req).send({
+            name: 'Field Operations',
+            description: 'Daily site delivery, supervision, and safety.',
+          }),
+        '201',
+      );
+      fieldOperationsId = fieldOperations.body.id;
+    });
+
+    it('rejects status changes through create and update', async () => {
+      await probe(
+        'post',
+        '/departments',
+        (req) =>
+          asOwner(req).send({ name: 'Procurement', status: 'inactive' }),
+        '400',
+        'status is controlled by activate/deactivate',
+      );
+
+      await probe(
+        'patch',
+        `/departments/${preconstructionId}`,
+        (req) => asOwner(req).send({ status: 'inactive' }),
+        '400',
+        'status is controlled by activate/deactivate',
+      );
+    });
+
+    it('GET /departments returns 200, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/departments',
+        (req) => asOwner(req),
+        '200',
+      );
+      const ids = listed.body.items.map((row: { id: string }) => row.id);
+      expect(ids).toEqual(
+        expect.arrayContaining([preconstructionId, fieldOperationsId]),
+      );
+
+      await probe('get', '/departments', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/departments',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /departments/{departmentId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/departments/${preconstructionId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body).toMatchObject({
+        id: preconstructionId,
+        name: 'Preconstruction',
+        status: 'active',
+      });
+
+      await probe(
+        'get',
+        `/departments/${preconstructionId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/departments/${preconstructionId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        '/departments/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req),
+        '404',
+        'unknown department',
+      );
+    });
+
+    it('PATCH /departments/{departmentId} returns 200, 400, 401, 403 and 404', async () => {
+      const updated = await probe(
+        'patch',
+        `/departments/${preconstructionId}`,
+        (req) =>
+          asOwner(req).send({
+            name: 'Preconstruction & Estimating',
+            description:
+              'Bid strategy, estimating, and preconstruction planning.',
+          }),
+        '200',
+      );
+      expect(updated.body).toMatchObject({
+        name: 'Preconstruction & Estimating',
+        description: 'Bid strategy, estimating, and preconstruction planning.',
+      });
+
+      await probe(
+        'patch',
+        `/departments/${preconstructionId}`,
+        (req) => asOwner(req).send({ name: '   ' }),
+        '400',
+        'empty name',
+      );
+      await probe(
+        'patch',
+        `/departments/${preconstructionId}`,
+        (req) => asOutsider(req).send({ name: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/departments/${preconstructionId}`,
+        (req) => req.send({ name: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        '/departments/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req).send({ name: 'Ghost' }),
+        '404',
+        'unknown department',
+      );
+    });
+
+    it('POST /departments/{departmentId}/deactivate returns 200, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        '/departments/00000000-0000-4000-8000-000000000000/deactivate',
+        (req) => asOwner(req),
+        '404',
+        'unknown department',
+      );
+      await probe(
+        'post',
+        `/departments/${preconstructionId}/deactivate`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/departments/${preconstructionId}/deactivate`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+
+      const inactive = await probe(
+        'post',
+        `/departments/${preconstructionId}/deactivate`,
+        (req) => asOwner(req),
+        '200',
+        'deactivate a department',
+      );
+      expect(inactive.body.status).toBe('inactive');
+
+      const again = await probe(
+        'post',
+        `/departments/${preconstructionId}/deactivate`,
+        (req) => asOwner(req),
+        '200',
+        'already inactive',
+      );
+      expect(again.body.status).toBe('inactive');
+
+      const listed = await probe(
+        'get',
+        '/departments',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(
+        listed.body.items.find(
+          (row: { id: string }) => row.id === preconstructionId,
+        ),
+      ).toMatchObject({ status: 'inactive' });
+    });
+
+    it('POST /departments/{departmentId}/activate returns 200, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        '/departments/00000000-0000-4000-8000-000000000000/activate',
+        (req) => asOwner(req),
+        '404',
+        'unknown department',
+      );
+      await probe(
+        'post',
+        `/departments/${preconstructionId}/activate`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/departments/${preconstructionId}/activate`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+
+      const active = await probe(
+        'post',
+        `/departments/${preconstructionId}/activate`,
+        (req) => asOwner(req),
+        '200',
+        'activate a department',
+      );
+      expect(active.body.status).toBe('active');
+
+      const again = await probe(
+        'post',
+        `/departments/${preconstructionId}/activate`,
+        (req) => asOwner(req),
+        '200',
+        'already active',
+      );
+      expect(again.body.status).toBe('active');
+    });
+  });
+
   describe('clients', () => {
     let clientId = '';
     let trashClientId = '';
@@ -4535,6 +4815,300 @@ describe('published contract vs runtime (e2e)', () => {
         '404',
         'unknown project',
       );
+    });
+
+    describe('project human resources', () => {
+      let humanResourceId = '';
+
+      it('POST /projects/{projectId}/human-resources returns 400, 401, 403, 404 and 201', async () => {
+        const path = `/projects/${projectId}/human-resources`;
+
+        await probe(
+          'post',
+          path,
+          (req) =>
+            req.send({
+              name: 'Jordan Ellis',
+              role: 'human_resource',
+            }),
+          '401',
+          'no token',
+        );
+        await probe(
+          'post',
+          path,
+          (req) =>
+            asOutsider(req).send({
+              name: 'Jordan Ellis',
+              role: 'human_resource',
+            }),
+          '403',
+          'not a member',
+        );
+        await probe(
+          'post',
+          path,
+          (req) =>
+            asOwner(req).send({
+              name: 'Jordan Ellis',
+              role: 'human_resource',
+              startDate: '2027-01-01',
+              endDate: '2026-01-01',
+            }),
+          '400',
+          'end before start',
+        );
+        await probe(
+          'post',
+          '/projects/00000000-0000-4000-8000-000000000000/human-resources',
+          (req) =>
+            asOwner(req).send({
+              name: 'Jordan Ellis',
+              role: 'human_resource',
+            }),
+          '404',
+          'unknown project',
+        );
+
+        const created = await probe(
+          'post',
+          path,
+          (req) =>
+            asOwner(req).send({
+              name: ' Jordan Ellis ',
+              email: 'Jordan.Ellis@RidgelineConstruction.com',
+              phone: '+1 503 555 0142',
+              role: 'human_resource',
+              allocationPercent: 60,
+              hourlyRate: 95.5,
+              startDate: '2026-11-02',
+              endDate: '2027-08-27',
+              notes: 'HR lead for field hiring and onboarding.',
+            }),
+          '201',
+        );
+        humanResourceId = created.body.id;
+        expect(created.body).toMatchObject({
+          projectId,
+          name: 'Jordan Ellis',
+          email: 'jordan.ellis@ridgelineconstruction.com',
+          role: 'human_resource',
+          allocationPercent: 60,
+          hourlyRate: '95.50',
+          status: 'active',
+        });
+      });
+
+      it('GET /projects/{projectId}/human-resources returns 200, 400, 401, 403 and 404', async () => {
+        const path = `/projects/${projectId}/human-resources`;
+
+        const listed = await probe(
+          'get',
+          path,
+          (req) => asOwner(req),
+          '200',
+        );
+        expect(
+          listed.body.items.map((row: { id: string }) => row.id),
+        ).toContain(humanResourceId);
+
+        await probe(
+          'get',
+          path,
+          (req) => asOwner(req).query({ role: 'site_foreman' }),
+          '400',
+          'unknown role filter',
+        );
+        await probe('get', path, (req) => req, '401', 'no token');
+        await probe(
+          'get',
+          path,
+          (req) => asOutsider(req),
+          '403',
+          'not a member',
+        );
+        await probe(
+          'get',
+          '/projects/00000000-0000-4000-8000-000000000000/human-resources',
+          (req) => asOwner(req),
+          '404',
+          'unknown project',
+        );
+      });
+
+      it('GET /projects/{projectId}/human-resources/{humanResourceId} returns 200, 401, 403 and 404', async () => {
+        const path = `/projects/${projectId}/human-resources/${humanResourceId}`;
+
+        const found = await probe(
+          'get',
+          path,
+          (req) => asOwner(req),
+          '200',
+        );
+        expect(found.body).toMatchObject({
+          id: humanResourceId,
+          name: 'Jordan Ellis',
+          status: 'active',
+        });
+
+        await probe('get', path, (req) => req, '401', 'no token');
+        await probe(
+          'get',
+          path,
+          (req) => asOutsider(req),
+          '403',
+          'not a member',
+        );
+        await probe(
+          'get',
+          `/projects/${projectId}/human-resources/00000000-0000-4000-8000-000000000000`,
+          (req) => asOwner(req),
+          '404',
+          'unknown human resource',
+        );
+      });
+
+      it('PATCH /projects/{projectId}/human-resources/{humanResourceId} returns 200, 400, 401, 403 and 404', async () => {
+        const path = `/projects/${projectId}/human-resources/${humanResourceId}`;
+
+        const updated = await probe(
+          'patch',
+          path,
+          (req) =>
+            asOwner(req).send({
+              allocationPercent: 75,
+              hourlyRate: 102.25,
+              notes: 'Split between field hiring and onboarding.',
+            }),
+          '200',
+        );
+        expect(updated.body).toMatchObject({
+          allocationPercent: 75,
+          hourlyRate: '102.25',
+          notes: 'Split between field hiring and onboarding.',
+        });
+
+        await probe(
+          'patch',
+          path,
+          (req) =>
+            asOwner(req).send({ allocationPercent: 0 }),
+          '400',
+          'allocation below one percent',
+        );
+        await probe(
+          'patch',
+          path,
+          (req) => asOwner(req).send({ status: 'inactive' }),
+          '400',
+          'status is controlled by activate/deactivate',
+        );
+        await probe(
+          'patch',
+          path,
+          (req) => req.send({ name: 'Anonymous' }),
+          '401',
+          'no token',
+        );
+        await probe(
+          'patch',
+          path,
+          (req) => asOutsider(req).send({ name: 'Stolen' }),
+          '403',
+          'not a member',
+        );
+        await probe(
+          'patch',
+          `/projects/${projectId}/human-resources/00000000-0000-4000-8000-000000000000`,
+          (req) => asOwner(req).send({ allocationPercent: 50 }),
+          '404',
+          'unknown human resource',
+        );
+      });
+
+      it('POST /projects/{projectId}/human-resources/{humanResourceId}/deactivate returns 200, 401, 403 and 404', async () => {
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/00000000-0000-4000-8000-000000000000/deactivate`,
+          (req) => asOwner(req),
+          '404',
+          'unknown human resource',
+        );
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/deactivate`,
+          (req) => req,
+          '401',
+          'no token',
+        );
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/deactivate`,
+          (req) => asOutsider(req),
+          '403',
+          'not a member',
+        );
+
+        const inactive = await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/deactivate`,
+          (req) => asOwner(req),
+          '200',
+          'deactivate a project human resource',
+        );
+        expect(inactive.body.status).toBe('inactive');
+
+        const again = await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/deactivate`,
+          (req) => asOwner(req),
+          '200',
+          'already inactive',
+        );
+        expect(again.body.status).toBe('inactive');
+      });
+
+      it('POST /projects/{projectId}/human-resources/{humanResourceId}/activate returns 200, 401, 403 and 404', async () => {
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/00000000-0000-4000-8000-000000000000/activate`,
+          (req) => asOwner(req),
+          '404',
+          'unknown human resource',
+        );
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/activate`,
+          (req) => req,
+          '401',
+          'no token',
+        );
+        await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/activate`,
+          (req) => asOutsider(req),
+          '403',
+          'not a member',
+        );
+
+        const active = await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/activate`,
+          (req) => asOwner(req),
+          '200',
+          'activate a project human resource',
+        );
+        expect(active.body.status).toBe('active');
+
+        const again = await probe(
+          'post',
+          `/projects/${projectId}/human-resources/${humanResourceId}/activate`,
+          (req) => asOwner(req),
+          '200',
+          'already active',
+        );
+        expect(again.body.status).toBe('active');
+      });
     });
   });
 

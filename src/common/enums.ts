@@ -172,6 +172,16 @@ export const DEFAULT_ORGANIZATION_CURRENCY: OrganizationCurrency = 'USD';
 
 export const TEAM_STATUSES = ['active', 'inactive', 'archived'] as const;
 
+export const DEPARTMENT_STATUSES = ['active', 'inactive'] as const;
+
+/** The two functions a project's people register records. */
+export const HUMAN_RESOURCE_ROLES = [
+  'human_resource',
+  'finance_manager',
+] as const;
+
+export const HUMAN_RESOURCE_STATUSES = ['active', 'inactive'] as const;
+
 export const TEAM_MEMBER_STATUSES = [
   'pending',
   'active',
