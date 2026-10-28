@@ -12,6 +12,7 @@ import {
   type Paginated,
 } from '../common/pagination.dto.js';
 import { NotificationService } from '../notification/notification.service.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { Project } from '../project/project.entity.js';
 import { Task } from '../task/task.entity.js';
 import {
@@ -46,6 +47,7 @@ export class MilestoneService {
     @InjectRepository(Task)
     private readonly taskRepo: Repository<Task>,
     private readonly notificationService: NotificationService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -109,6 +111,17 @@ export class MilestoneService {
       `Milestone "${milestone.name}" created`,
       `A new milestone "${milestone.name}" was added to the project.`,
     );
+
+    void this.activity.log({
+      organizationId,
+      actorId,
+      entityType: 'milestone',
+      entityId: milestone.id,
+      action: 'created',
+      title: 'Milestone created',
+      body: milestone.name,
+      projectId: milestone.projectId,
+    });
 
     return milestone;
   }

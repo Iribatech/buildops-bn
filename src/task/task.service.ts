@@ -26,6 +26,7 @@ import {
   type TrashEntryDto,
 } from '../common/soft-delete.js';
 import { CreateTaskDto, TaskQueryDto, UpdateTaskDto } from './dto/task.dto.js';
+import { ActivityService } from '../activity/activity.service.js';
 
 /** A task plus the subtask totals the board renders on its card. */
 export interface TaskWithRollup {
@@ -61,6 +62,7 @@ export class TaskService {
     // A task may be scheduled under a milestone of the same project. Resolution
     // (and the "same project" rule) lives with the milestone, not here.
     private readonly milestoneService: MilestoneService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -219,6 +221,18 @@ export class TaskService {
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       }),
     );
+
+    void this.activity.log({
+      organizationId,
+      actorId: null,
+      entityType: 'task',
+      entityId: created.id,
+      action: 'created',
+      title: 'Task created',
+      body: created.title,
+      projectId: created.projectId,
+      taskId: created.id,
+    });
 
     // Re-read rather than answering from the insert: the row just written has
     // no owner relation loaded, so `create` would report a task assigned on the

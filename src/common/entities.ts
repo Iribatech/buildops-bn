@@ -21,6 +21,9 @@ import { TimeEntry } from '../time-entry/time-entry.entity.js';
 import { TimeComplexity } from '../time-complexity/time-complexity.entity.js';
 import { RefreshToken } from '../auth/refresh-token.entity.js';
 import { UserSettings } from '../settings/user-settings.entity.js';
+import { Activity } from '../activity/activity.entity.js';
+import { Comment, CommentMention } from '../comment/comment.entity.js';
+import { Attachment } from '../attachment/attachment.entity.js';
 import { OrganizationSettings } from '../settings/organization-settings.entity.js';
 
 /** Every entity mapped by the ORM; the single source of truth for TypeORM. */
@@ -49,4 +52,8 @@ export const ENTITIES = [
   RefreshToken,
   UserSettings,
   OrganizationSettings,
+  Activity,
+  Comment,
+  CommentMention,
+  Attachment,
 ];

@@ -5,6 +5,7 @@ import { Task } from '../task/task.entity.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthorizationModule } from '../auth/authorization.module.js';
 import { NotificationModule } from '../notification/notification.module.js';
+import { ActivityModule } from '../activity/activity.module.js';
 import { MilestoneController } from './milestone.controller.js';
 import { Milestone } from './milestone.entity.js';
 import { MilestoneService } from './milestone.service.js';
@@ -14,6 +15,7 @@ import { MilestoneService } from './milestone.service.js';
     AuthModule,
     AuthorizationModule,
     NotificationModule,
+    ActivityModule,
     // Task is here for the detach on delete, not for reads.
     TypeOrmModule.forFeature([Milestone, Project, Task]),
   ],

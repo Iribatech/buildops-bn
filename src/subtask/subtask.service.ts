@@ -11,6 +11,7 @@ import {
   type Paginated,
 } from '../common/pagination.dto.js';
 import { NotificationService } from '../notification/notification.service.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { User } from '../user/user.entity.js';
 import { Project } from '../project/project.entity.js';
 import { RoleService } from '../role/role.service.js';
@@ -56,6 +57,7 @@ export class SubtaskService {
     private readonly projectRepo: Repository<Project>,
     private readonly roleService: RoleService,
     private readonly notifications: NotificationService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -219,6 +221,22 @@ export class SubtaskService {
       previous: null,
     });
 
+    void this.activity.log({
+      organizationId,
+      actorId,
+      entityType: 'subtask',
+      entityId: created.id,
+      action: created.assignedTo ? 'assigned' : 'created',
+      title: created.assignedTo
+        ? 'Subtask assigned'
+        : 'Subtask created',
+      body: created.title,
+      projectId: task.projectId,
+      taskId: task.id,
+      subtaskId: created.id,
+      metadata: { assigneeId: created.assignedTo },
+    });
+
     // Re-read rather than answering from the insert. The insert hands back the
     // row it wrote with no relation loaded, so `create` would report every new
     // subtask as unassigned -- including one that was assigned on the way in.
@@ -380,6 +398,21 @@ export class SubtaskService {
         projectId: task.projectId,
         assigneeId: assignedTo,
         previous: previousAssignee,
+      });
+
+      void this.activity.log({
+        organizationId,
+        actorId,
+        entityType: 'subtask',
+        entityId: subtask.id,
+        action: assignedTo ? (previousAssignee ? 'reassigned' : 'assigned') : 'unassigned',
+        title: 'Subtask assignment updated',
+        body: subtask.title,
+        projectId: task.projectId,
+        taskId: task.id,
+        subtaskId: subtask.id,
+        diff: { assignedTo: { from: previousAssignee, to: assignedTo } },
+        metadata: { assigneeId: assignedTo },
       });
     }
 

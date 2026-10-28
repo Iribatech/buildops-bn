@@ -17,6 +17,7 @@ import {
   HumanResourceQueryDto,
   UpdateHumanResourceDto,
 } from './dto/human-resource.dto.js';
+import { ActivityService } from '../activity/activity.service.js';
 
 @Injectable()
 export class HumanResourceService {
@@ -25,6 +26,7 @@ export class HumanResourceService {
     private readonly humanResourceRepo: Repository<HumanResource>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -81,7 +83,7 @@ export class HumanResourceService {
     await this.assertProject(organizationId, projectId);
     this.assertDateOrder(dto.startDate, dto.endDate);
 
-    return this.humanResourceRepo.save(
+    const created = await this.humanResourceRepo.save(
       this.humanResourceRepo.create({
         organizationId,
         projectId,
@@ -98,6 +100,19 @@ export class HumanResourceService {
         status: 'active',
       }),
     );
+
+    void this.activity.log({
+      organizationId,
+      actorId: null,
+      entityType: 'human_resource',
+      entityId: created.id,
+      action: 'created',
+      title: 'Human resource added',
+      body: created.name,
+      projectId,
+    });
+
+    return created;
   }
 
   async update(
@@ -164,6 +179,16 @@ export class HumanResourceService {
     if (humanResource.status !== status) {
       humanResource.status = status;
       await this.humanResourceRepo.save(humanResource);
+      void this.activity.log({
+        organizationId,
+        actorId: null,
+        entityType: 'human_resource',
+        entityId: humanResource.id,
+        action: status === 'active' ? 'activated' : 'deactivated',
+        title: status === 'active' ? 'Human resource activated' : 'Human resource deactivated',
+        body: humanResource.name,
+        projectId,
+      });
     }
 
     return humanResource;

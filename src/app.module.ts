@@ -34,6 +34,10 @@ import { TimeEntryModule } from './time-entry/time-entry.module.js';
 import { TimeComplexityModule } from './time-complexity/time-complexity.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { SettingsModule } from './settings/settings.module.js';
+import { ActivityModule } from './activity/activity.module.js';
+import { CommentModule } from './comment/comment.module.js';
+import { AttachmentModule } from './attachment/attachment.module.js';
+import { RealtimeModule } from './realtime/realtime.module.js';
 
 @Module({
   imports: [
@@ -120,6 +124,10 @@ import { SettingsModule } from './settings/settings.module.js';
     SubtaskModule,
     MilestoneModule,
     NotificationModule,
+    ActivityModule,
+    CommentModule,
+    AttachmentModule,
+    RealtimeModule,
     TimeEntryModule,
     TimeComplexityModule,
     DashboardModule,
