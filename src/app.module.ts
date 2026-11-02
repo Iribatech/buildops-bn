@@ -22,6 +22,9 @@ import { RoleModule } from './role/role.module.js';
 import { InvitationModule } from './invitation/invitation.module.js';
 import { TeamModule } from './team/team.module.js';
 import { DepartmentModule } from './department/department.module.js';
+import { EmployeeModule } from './employee/employee.module.js';
+import { LeaveModule } from './leave/leave.module.js';
+import { PerformanceReviewModule } from './performance-review/performance-review.module.js';
 import { HumanResourceModule } from './human-resource/human-resource.module.js';
 import { ClientModule } from './client/client.module.js';
 import { ProjectModule } from './project/project.module.js';
@@ -116,6 +119,9 @@ import { RealtimeModule } from './realtime/realtime.module.js';
     InvitationModule,
     TeamModule,
     DepartmentModule,
+    EmployeeModule,
+    LeaveModule,
+    PerformanceReviewModule,
     HumanResourceModule,
     ClientModule,
     ProjectModule,

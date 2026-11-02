@@ -44,6 +44,7 @@ describe('MilestoneService', () => {
   let projectRepo: any;
   let taskRepo: any;
   let notificationService: any;
+  let activityService: any;
   let service: MilestoneService;
 
   beforeEach(() => {
@@ -96,11 +97,16 @@ describe('MilestoneService', () => {
       broadcast: jest.fn().mockResolvedValue(0),
     };
 
+    activityService = {
+      log: jest.fn(),
+    };
+
     service = new MilestoneService(
       milestoneRepo as never,
       projectRepo as never,
       taskRepo as never,
       notificationService as never,
+      activityService as never,
     );
   });
 

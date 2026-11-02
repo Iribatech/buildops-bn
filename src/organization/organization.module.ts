@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanLimitModule } from '../plan-limit/plan-limit.module.js';
 import { RoleModule } from '../role/role.module.js';
+import { LeaveModule } from '../leave/leave.module.js';
 import { SubscriptionModule } from '../subscription/subscription.module.js';
 import { OrganizationController } from './organization.controller.js';
 import { Organization } from './organization.entity.js';
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module.js';
     SubscriptionModule,
     PlanLimitModule,
     RoleModule,
+    LeaveModule,
   ],
   controllers: [OrganizationController],
   providers: [OrganizationService],

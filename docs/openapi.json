@@ -1434,7 +1434,7 @@
     },
     "/organizations/{organizationId}/role-templates": {
       "get": {
-        "description": "Reusable default role templates (owner, project_manager, developer, tester, viewer) and the full permission catalog.",
+        "description": "Reusable default role templates (owner, project_manager, hr_manager, developer, tester, viewer) and the full permission catalog.",
         "operationId": "RoleController_roleTemplates",
         "parameters": [
           {
@@ -3377,6 +3377,2328 @@
         },
         "x-permissions": [
           "organization.delete"
+        ]
+      }
+    },
+    "/leave-types": {
+      "post": {
+        "description": "Adds a kind of absence the organization recognises. The default entitlement is the annual allowance for every employee; new organizations start with the standard catalogue.",
+        "operationId": "LeaveTypeController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLeaveTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave type created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a leave type",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated leave catalogue of the active organization, active and inactive alike.",
+        "operationId": "LeaveTypeController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of leave types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List leave types",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.view"
+        ]
+      }
+    },
+    "/leave-types/{leaveTypeId}": {
+      "get": {
+        "description": "One leave type of the active organization.",
+        "operationId": "LeaveTypeController_findOne",
+        "parameters": [
+          {
+            "name": "leaveTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The leave type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a leave type",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.view"
+        ]
+      },
+      "patch": {
+        "description": "Changes the name, description, entitlement or paid flag. Status is controlled by activate/deactivate.",
+        "operationId": "LeaveTypeController_update",
+        "parameters": [
+          {
+            "name": "leaveTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLeaveTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The leave type as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a leave type",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.update"
+        ]
+      }
+    },
+    "/leave-types/{leaveTypeId}/deactivate": {
+      "post": {
+        "description": "Stops the type being offered on new requests without touching approved history. Idempotent.",
+        "operationId": "LeaveTypeController_deactivate",
+        "parameters": [
+          {
+            "name": "leaveTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The leave type, now inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate a leave type",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.update"
+        ]
+      }
+    },
+    "/leave-types/{leaveTypeId}/activate": {
+      "post": {
+        "description": "Returns a leave type to the request catalogue. Idempotent.",
+        "operationId": "LeaveTypeController_activate",
+        "parameters": [
+          {
+            "name": "leaveTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The leave type, now active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveTypeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate a leave type",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_type.update"
+        ]
+      }
+    },
+    "/leave-requests": {
+      "post": {
+        "description": "Creates a pending request for an employee. Days are inclusive calendar days; overlapping pending or approved requests for the same employee are refused.",
+        "operationId": "LeaveRequestController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLeaveRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request leave",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated leave requests of the active organization, filtered by employee, leave type, status and an intersecting date range.",
+        "operationId": "LeaveRequestController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "employeeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+              "type": "string"
+            }
+          },
+          {
+            "name": "leaveTypeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Only requests whose range intersects this date or later",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Only requests whose range intersects this date or earlier",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of leave requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List leave requests",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.view"
+        ]
+      }
+    },
+    "/leave-requests/{leaveRequestId}": {
+      "get": {
+        "description": "One leave request, including its decision history.",
+        "operationId": "LeaveRequestController_findOne",
+        "parameters": [
+          {
+            "name": "leaveRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The leave request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a leave request",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.view"
+        ]
+      },
+      "patch": {
+        "description": "Changes a pending request. Approved, rejected and cancelled requests are history and cannot be edited.",
+        "operationId": "LeaveRequestController_update",
+        "parameters": [
+          {
+            "name": "leaveRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLeaveRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The leave request as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a leave request",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.update"
+        ]
+      }
+    },
+    "/leave-requests/{leaveRequestId}/approve": {
+      "post": {
+        "description": "Moves a pending request to approved and records the approver. A decided request cannot be decided again.",
+        "operationId": "LeaveRequestController_approve",
+        "parameters": [
+          {
+            "name": "leaveRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The approved leave request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve a leave request",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.approve"
+        ]
+      }
+    },
+    "/leave-requests/{leaveRequestId}/reject": {
+      "post": {
+        "description": "Moves a pending request to rejected and records the approver and optional note.",
+        "operationId": "LeaveRequestController_reject",
+        "parameters": [
+          {
+            "name": "leaveRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rejected leave request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject a leave request",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.approve"
+        ]
+      }
+    },
+    "/leave-requests/{leaveRequestId}/cancel": {
+      "post": {
+        "description": "Cancels a pending or approved request and returns its days to the balance. Rejected and cancelled requests cannot be cancelled again.",
+        "operationId": "LeaveRequestController_cancel",
+        "parameters": [
+          {
+            "name": "leaveRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The cancelled leave request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a leave request",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.cancel"
+        ]
+      }
+    },
+    "/employees/{employeeId}/leave-balances": {
+      "get": {
+        "description": "Entitlement, approved, pending and remaining days per leave type for a calendar year. Approved days spanning the year boundary are counted only inside that year.",
+        "operationId": "LeaveBalanceController_balances",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Calendar year, defaults to the current year",
+            "schema": {
+              "minimum": 2000,
+              "maximum": 2100,
+              "example": 2026,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employee leave balance for the year",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveBalanceResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an employee leave balance",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "leave_request.view"
+        ]
+      }
+    },
+    "/employees": {
+      "post": {
+        "description": "Adds an organization-wide HR record. A login account, department and manager are optional but must belong to the active organization. Creates start active.",
+        "operationId": "EmployeeController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Employee created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an employee",
+        "tags": [
+          "employees"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "employee.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated employee directory of the active organization, optionally filtered by lifecycle status, department, manager, employment type or a text search across name, email and employee number.",
+        "operationId": "EmployeeController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "probation",
+                "on_leave",
+                "terminated"
+              ]
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+              "type": "string"
+            }
+          },
+          {
+            "name": "managerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33",
+              "type": "string"
+            }
+          },
+          {
+            "name": "employmentType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full_time",
+                "part_time",
+                "contractor",
+                "intern",
+                "temporary"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive match on name, email or employee number",
+            "schema": {
+              "example": "jordan",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of employees",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List employees",
+        "tags": [
+          "employees"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "employee.view"
+        ]
+      }
+    },
+    "/employees/{employeeId}": {
+      "get": {
+        "description": "One employee record, including contact details, reporting line and compensation.",
+        "operationId": "EmployeeController_findOne",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employee",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an employee",
+        "tags": [
+          "employees"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "employee.view"
+        ]
+      },
+      "patch": {
+        "description": "Changes the employee record. Lifecycle status is controlled by the status route, so a status in this body is rejected.",
+        "operationId": "EmployeeController_update",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The employee as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an employee",
+        "tags": [
+          "employees"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "employee.update"
+        ]
+      }
+    },
+    "/employees/{employeeId}/status": {
+      "post": {
+        "description": "Moves an employee between active, probation, on_leave and terminated. Terminating without a date uses today; any other status clears terminationDate. Idempotent for the same status.",
+        "operationId": "EmployeeController_setStatus",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The employee with its new lifecycle status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an employee lifecycle status",
+        "tags": [
+          "employees"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "employee.update"
         ]
       }
     },
@@ -5613,6 +7935,740 @@
         ]
       }
     },
+    "/performance-reviews": {
+      "post": {
+        "description": "Creates a draft review of an employee for a period. The reviewer defaults to the caller and must be an active member of the organization; an employee cannot review themselves.",
+        "operationId": "PerformanceReviewController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePerformanceReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft review created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start a performance review",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.create"
+        ]
+      },
+      "get": {
+        "description": "Paginated reviews of the active organization, filtered by employee, reviewer, status and an intersecting period.",
+        "operationId": "PerformanceReviewController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "employeeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+              "type": "string"
+            }
+          },
+          {
+            "name": "reviewerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "submitted",
+                "acknowledged"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews whose period intersects this date or later",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews whose period intersects this date or earlier",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of performance reviews",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List performance reviews",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.view"
+        ]
+      }
+    },
+    "/performance-reviews/{reviewId}": {
+      "get": {
+        "description": "One performance review of the active organization.",
+        "operationId": "PerformanceReviewController_findOne",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The performance review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a performance review",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.view"
+        ]
+      },
+      "patch": {
+        "description": "Changes a draft review only. Submitted and acknowledged reviews are history and cannot be edited.",
+        "operationId": "PerformanceReviewController_update",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePerformanceReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The performance review as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a performance review",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.update"
+        ]
+      }
+    },
+    "/performance-reviews/{reviewId}/submit": {
+      "post": {
+        "description": "Finishes a draft review and records the submission time. A rating is required, and the review becomes read-only.",
+        "operationId": "PerformanceReviewController_submit",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The submitted performance review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit a performance review",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.update"
+        ]
+      }
+    },
+    "/performance-reviews/{reviewId}/acknowledge": {
+      "post": {
+        "description": "Records that a submitted review has been seen. An acknowledged review is final.",
+        "operationId": "PerformanceReviewController_acknowledge",
+        "parameters": [
+          {
+            "name": "reviewId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The acknowledged performance review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Acknowledge a performance review",
+        "tags": [
+          "performance-reviews"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "performance_review.update"
+        ]
+      }
+    },
     "/projects/{projectId}/human-resources": {
       "post": {
         "description": "Creates an active human-resource or finance-manager entry in the project. The project must belong to the active organization.",
@@ -5765,6 +8821,16 @@
               "maximum": 100,
               "default": 20,
               "type": "number"
+            }
+          },
+          {
+            "name": "employeeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by linked employee",
+            "schema": {
+              "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+              "type": "string"
             }
           },
           {
@@ -14034,6 +17100,18 @@
       "description": "Departments within an organization"
     },
     {
+      "name": "employees",
+      "description": "Organization-wide employee records, reporting lines and lifecycle"
+    },
+    {
+      "name": "leave",
+      "description": "Leave types, leave requests, entitlements and per-employee balances"
+    },
+    {
+      "name": "performance-reviews",
+      "description": "Performance reviews: drafts, submission and employee acknowledgement"
+    },
+    {
       "name": "human-resources",
       "description": "People, functions, rates and allocations on a project"
     },
@@ -14977,6 +18055,7 @@
             "enum": [
               "owner",
               "project_manager",
+              "hr_manager",
               "developer",
               "tester",
               "viewer"
@@ -15056,6 +18135,20 @@
                 "human_resource.view",
                 "human_resource.create",
                 "human_resource.update",
+                "employee.view",
+                "employee.create",
+                "employee.update",
+                "leave_type.view",
+                "leave_type.create",
+                "leave_type.update",
+                "leave_request.view",
+                "leave_request.create",
+                "leave_request.update",
+                "leave_request.approve",
+                "leave_request.cancel",
+                "performance_review.view",
+                "performance_review.create",
+                "performance_review.update",
                 "client.view",
                 "client.create",
                 "client.update",
@@ -15164,6 +18257,20 @@
                 "human_resource.view",
                 "human_resource.create",
                 "human_resource.update",
+                "employee.view",
+                "employee.create",
+                "employee.update",
+                "leave_type.view",
+                "leave_type.create",
+                "leave_type.update",
+                "leave_request.view",
+                "leave_request.create",
+                "leave_request.update",
+                "leave_request.approve",
+                "leave_request.cancel",
+                "performance_review.view",
+                "performance_review.create",
+                "performance_review.update",
                 "client.view",
                 "client.create",
                 "client.update",
@@ -15412,6 +18519,785 @@
           "message"
         ]
       },
+      "CreateLeaveTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Annual Leave"
+          },
+          "description": {
+            "type": "string",
+            "example": "Paid holiday entitlement carried through the year."
+          },
+          "defaultEntitlementDays": {
+            "type": "number",
+            "example": 20,
+            "minimum": 0,
+            "maximum": 366,
+            "default": 0,
+            "description": "Annual allowance in days for every employee"
+          },
+          "paid": {
+            "type": "boolean",
+            "example": true,
+            "default": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "LeaveTypeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f6b7c8d9-0a1b-4c2d-8e3f-4a5b6c7d8e9f"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "name": {
+            "type": "string",
+            "example": "Annual Leave"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "defaultEntitlementDays": {
+            "type": "number",
+            "example": 20
+          },
+          "paid": {
+            "type": "boolean",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "example": "active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "defaultEntitlementDays",
+          "paid",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LeaveTypePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaveTypeResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdateLeaveTypeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Annual Leave"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "defaultEntitlementDays": {
+            "type": "number",
+            "example": 25,
+            "minimum": 0,
+            "maximum": 366
+          },
+          "paid": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "CreateLeaveRequestDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "leaveTypeId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-12-21"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Family holiday."
+          }
+        },
+        "required": [
+          "employeeId",
+          "leaveTypeId",
+          "startDate",
+          "endDate"
+        ]
+      },
+      "LeaveRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f6b7c8d9-0a1b-4c2d-8e3f-4a5b6c7d8e9f"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "employeeName": {
+            "type": "object",
+            "example": "Jordan Ellis",
+            "nullable": true
+          },
+          "leaveTypeId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "leaveTypeName": {
+            "type": "object",
+            "example": "Annual Leave",
+            "nullable": true
+          },
+          "startDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-12-21"
+          },
+          "endDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "days": {
+            "type": "number",
+            "example": 11
+          },
+          "reason": {
+            "type": "object",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "cancelled"
+            ],
+            "example": "pending"
+          },
+          "approverId": {
+            "type": "object",
+            "nullable": true
+          },
+          "approverName": {
+            "type": "object",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "decisionNote": {
+            "type": "object",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "employeeId",
+          "leaveTypeId",
+          "startDate",
+          "endDate",
+          "days",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LeaveRequestPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaveRequestResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdateLeaveRequestDto": {
+        "type": "object",
+        "properties": {
+          "leaveTypeId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+            "description": "Only pending requests may be edited"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-12-21"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "reason": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "LeaveDecisionDto": {
+        "type": "object",
+        "properties": {
+          "decisionNote": {
+            "type": "string",
+            "example": "Approved against the December rota.",
+            "description": "Optional note recorded with the decision"
+          }
+        }
+      },
+      "LeaveBalanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "employeeName": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "year": {
+            "type": "number",
+            "example": 2026
+          },
+          "balances": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "employeeId",
+          "employeeName",
+          "year",
+          "balances"
+        ]
+      },
+      "CreateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "employeeNumber": {
+            "type": "string",
+            "example": "EMP-0142",
+            "description": "Organization-unique employee number"
+          },
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "string",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "description": "Work email address"
+          },
+          "personalEmail": {
+            "type": "string",
+            "example": "jordan.ellis@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1 503 555 0142"
+          },
+          "userId": {
+            "type": "string",
+            "example": "2f7c1d4e-8a9b-4c3d-9e0f-1a2b3c4d5e6f",
+            "description": "Login account for this person, when one exists"
+          },
+          "departmentId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+            "description": "Department of the same organization"
+          },
+          "managerId": {
+            "type": "string",
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33",
+            "description": "The employee this person reports to"
+          },
+          "jobTitle": {
+            "type": "string",
+            "example": "HR Lead"
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "full_time",
+              "part_time",
+              "contractor",
+              "intern",
+              "temporary"
+            ],
+            "default": "full_time"
+          },
+          "hireDate": {
+            "type": "string",
+            "example": "2026-11-02"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "example": "1990-04-18"
+          },
+          "address": {
+            "type": "string",
+            "example": "1420 NW Marshall St, Portland, OR"
+          },
+          "emergencyContactName": {
+            "type": "string",
+            "example": "Casey Ellis"
+          },
+          "emergencyContactPhone": {
+            "type": "string",
+            "example": "+1 503 555 0199"
+          },
+          "emergencyContactRelationship": {
+            "type": "string",
+            "example": "Spouse"
+          },
+          "annualSalary": {
+            "type": "number",
+            "example": 95000,
+            "description": "Annual salary in the organization currency, DECIMAL(12,2)"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Field HR lead for the west region."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "EmployeeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f6b7c8d9-0a1b-4c2d-8e3f-4a5b6c7d8e9f"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "userId": {
+            "type": "object",
+            "example": "2f7c1d4e-8a9b-4c3d-9e0f-1a2b3c4d5e6f",
+            "nullable": true
+          },
+          "employeeNumber": {
+            "type": "object",
+            "example": "EMP-0142",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "object",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "nullable": true
+          },
+          "personalEmail": {
+            "type": "object",
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1 503 555 0142",
+            "nullable": true
+          },
+          "departmentId": {
+            "type": "object",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "People Operations",
+            "nullable": true
+          },
+          "managerId": {
+            "type": "object",
+            "nullable": true
+          },
+          "managerName": {
+            "type": "object",
+            "example": "Maya Chen",
+            "nullable": true
+          },
+          "jobTitle": {
+            "type": "object",
+            "example": "HR Lead",
+            "nullable": true
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "full_time",
+              "part_time",
+              "contractor",
+              "intern",
+              "temporary"
+            ],
+            "example": "full_time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "probation",
+              "on_leave",
+              "terminated"
+            ],
+            "example": "active"
+          },
+          "hireDate": {
+            "type": "object",
+            "example": "2026-11-02",
+            "nullable": true
+          },
+          "terminationDate": {
+            "type": "object",
+            "example": "2027-03-31",
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "object",
+            "example": "1990-04-18",
+            "nullable": true
+          },
+          "address": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactName": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactPhone": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactRelationship": {
+            "type": "object",
+            "nullable": true
+          },
+          "annualSalary": {
+            "type": "object",
+            "example": "95000.00",
+            "nullable": true,
+            "description": "DECIMAL(12,2) returned as a string to preserve precision"
+          },
+          "notes": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "employmentType",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "EmployeePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "employeeNumber": {
+            "type": "object",
+            "example": "EMP-0142",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "email": {
+            "type": "object",
+            "example": "jordan.ellis@ridgelineconstruction.com",
+            "nullable": true
+          },
+          "personalEmail": {
+            "type": "object",
+            "example": "jordan.ellis@example.com",
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1 503 555 0142",
+            "nullable": true
+          },
+          "userId": {
+            "type": "object",
+            "example": "2f7c1d4e-8a9b-4c3d-9e0f-1a2b3c4d5e6f",
+            "nullable": true,
+            "description": "Null detaches the login account"
+          },
+          "departmentId": {
+            "type": "object",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+            "nullable": true
+          },
+          "managerId": {
+            "type": "object",
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33",
+            "nullable": true
+          },
+          "jobTitle": {
+            "type": "object",
+            "example": "HR Lead",
+            "nullable": true
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": [
+              "full_time",
+              "part_time",
+              "contractor",
+              "intern",
+              "temporary"
+            ]
+          },
+          "hireDate": {
+            "type": "object",
+            "example": "2026-11-02",
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "object",
+            "example": "1990-04-18",
+            "nullable": true
+          },
+          "address": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactName": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactPhone": {
+            "type": "object",
+            "nullable": true
+          },
+          "emergencyContactRelationship": {
+            "type": "object",
+            "nullable": true
+          },
+          "annualSalary": {
+            "type": "object",
+            "example": 95000,
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateEmployeeStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "probation",
+              "on_leave",
+              "terminated"
+            ],
+            "example": "terminated",
+            "description": "Lifecycle status. Terminating without a date uses today; any other status clears terminationDate."
+          },
+          "terminationDate": {
+            "type": "string",
+            "example": "2027-03-31"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Resigned for a role closer to home."
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "CreateInvitationDto": {
         "type": "object",
         "properties": {
@@ -15426,6 +19312,7 @@
             "enum": [
               "owner",
               "project_manager",
+              "hr_manager",
               "developer",
               "tester",
               "viewer"
@@ -16135,12 +20022,264 @@
           }
         }
       },
+      "CreatePerformanceReviewDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "reviewerId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Reviewer; defaults to the caller"
+          },
+          "periodStart": {
+            "type": "string",
+            "example": "2026-01-01"
+          },
+          "periodEnd": {
+            "type": "string",
+            "example": "2026-06-30"
+          },
+          "reviewDate": {
+            "type": "string",
+            "example": "2026-07-05"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "summary": {
+            "type": "string",
+            "example": "Strong half with reliable delivery."
+          },
+          "strengths": {
+            "type": "string",
+            "example": "Owns the field hiring pipeline end to end."
+          },
+          "improvements": {
+            "type": "string",
+            "example": "Delegate scheduling earlier."
+          },
+          "goals": {
+            "type": "string",
+            "example": "Lead the Q3 onboarding refresh."
+          }
+        },
+        "required": [
+          "employeeId",
+          "periodStart",
+          "periodEnd"
+        ]
+      },
+      "PerformanceReviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "f6b7c8d9-0a1b-4c2d-8e3f-4a5b6c7d8e9f"
+          },
+          "organizationId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "employeeName": {
+            "type": "object",
+            "example": "Jordan Ellis",
+            "nullable": true
+          },
+          "reviewerId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "reviewerName": {
+            "type": "object",
+            "example": "Maya Chen",
+            "nullable": true
+          },
+          "periodStart": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-01-01"
+          },
+          "periodEnd": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-06-30"
+          },
+          "reviewDate": {
+            "type": "object",
+            "example": "2026-07-05",
+            "nullable": true
+          },
+          "rating": {
+            "type": "object",
+            "example": 4,
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted",
+              "acknowledged"
+            ],
+            "example": "draft"
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "strengths": {
+            "type": "object",
+            "nullable": true
+          },
+          "improvements": {
+            "type": "object",
+            "nullable": true
+          },
+          "goals": {
+            "type": "object",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "acknowledgedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-10-26T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "employeeId",
+          "reviewerId",
+          "periodStart",
+          "periodEnd",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PerformanceReviewPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceReviewResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UpdatePerformanceReviewDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "reviewerId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d"
+          },
+          "periodStart": {
+            "type": "string",
+            "example": "2026-01-01"
+          },
+          "periodEnd": {
+            "type": "string",
+            "example": "2026-06-30"
+          },
+          "reviewDate": {
+            "type": "object",
+            "example": "2026-07-05",
+            "nullable": true
+          },
+          "rating": {
+            "type": "object",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 5,
+            "nullable": true
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "strengths": {
+            "type": "object",
+            "nullable": true
+          },
+          "improvements": {
+            "type": "object",
+            "nullable": true
+          },
+          "goals": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
       "CreateHumanResourceDto": {
         "type": "object",
         "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+            "description": "Organization employee this assignment is for; name and contact details default from the employee when omitted"
+          },
           "name": {
             "type": "string",
-            "example": "Jordan Ellis"
+            "example": "Jordan Ellis",
+            "description": "Overrides the employee name, or names a person not in the HR directory"
           },
           "email": {
             "type": "string",
@@ -16186,7 +20325,6 @@
           }
         },
         "required": [
-          "name",
           "role"
         ]
       },
@@ -16204,6 +20342,16 @@
           "projectId": {
             "type": "string",
             "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
+          },
+          "employeeId": {
+            "type": "object",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+            "nullable": true
+          },
+          "employeeName": {
+            "type": "object",
+            "example": "Jordan Ellis",
+            "nullable": true
           },
           "name": {
             "type": "string",
@@ -16324,6 +20472,12 @@
       "UpdateHumanResourceDto": {
         "type": "object",
         "properties": {
+          "employeeId": {
+            "type": "object",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e",
+            "nullable": true,
+            "description": "Null unlinks the assignment from the HR directory"
+          },
           "name": {
             "type": "string",
             "example": "Jordan Ellis"
@@ -17198,7 +21352,9 @@
               "milestone_created",
               "milestone_updated",
               "milestone_deleted",
-              "milestone_restored"
+              "milestone_restored",
+              "comment_mentioned",
+              "comment_replied"
             ],
             "example": "subtask_assigned"
           },

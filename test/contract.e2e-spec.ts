@@ -3405,6 +3405,1201 @@ describe('published contract vs runtime (e2e)', () => {
     });
   });
 
+  describe('HR management', () => {
+    let employeeId = '';
+    let secondEmployeeId = '';
+    let leaveTypeId = '';
+    let leaveRequestId = '';
+    let pendingRequestId = '';
+    let cancelledRequestId = '';
+    let reviewId = '';
+    let unratedReviewId = '';
+
+    const unknown = '00000000-0000-4000-8000-000000000000';
+
+    it('POST /employees returns 400, 401, 403, 409 and 201', async () => {
+      await probe(
+        'post',
+        '/employees',
+        (req) => req.send({ name: 'Jordan Ellis' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/employees',
+        (req) => asOutsider(req).send({ name: 'Jordan Ellis' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/employees',
+        (req) => asOwner(req).send({ name: '' }),
+        '400',
+        'empty name',
+      );
+
+      const created = await probe(
+        'post',
+        '/employees',
+        (req) =>
+          asOwner(req).send({
+            name: ' Jordan Ellis ',
+            employeeNumber: 'HR-001',
+            email: 'Jordan.Ellis@Example.com',
+            jobTitle: 'People Operations Lead',
+            employmentType: 'full_time',
+            hireDate: '2025-02-03',
+            annualSalary: 92000,
+          }),
+        '201',
+      );
+      employeeId = created.body.id;
+      expect(created.body).toMatchObject({
+        name: 'Jordan Ellis',
+        employeeNumber: 'HR-001',
+        email: 'jordan.ellis@example.com',
+        employmentType: 'full_time',
+        annualSalary: '92000.00',
+        status: 'active',
+      });
+
+      await probe(
+        'post',
+        '/employees',
+        (req) =>
+          asOwner(req).send({
+            name: 'Duplicate Number',
+            employeeNumber: 'HR-001',
+          }),
+        '409',
+        'duplicate employee number',
+      );
+
+      const second = await probe(
+        'post',
+        '/employees',
+        (req) =>
+          asOwner(req).send({
+            name: 'Priya Raman',
+            jobTitle: 'Finance Manager',
+          }),
+        '201',
+      );
+      secondEmployeeId = second.body.id;
+      expect(second.body.employeeNumber).toBeNull();
+    });
+
+    it('GET /employees returns 200, 400, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/employees',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(
+        listed.body.items.map((row: { id: string }) => row.id),
+      ).toEqual(expect.arrayContaining([employeeId, secondEmployeeId]));
+
+      await probe(
+        'get',
+        '/employees',
+        (req) => asOwner(req).query({ page: 0 }),
+        '400',
+        'page below the documented minimum',
+      );
+      await probe('get', '/employees', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/employees',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /employees/{employeeId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/employees/${employeeId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.name).toBe('Jordan Ellis');
+
+      await probe(
+        'get',
+        `/employees/${employeeId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/employees/${employeeId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/employees/${unknown}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown employee',
+      );
+    });
+
+    it('PATCH /employees/{employeeId} returns 200, 400, 401, 403, 404 and 409', async () => {
+      const updated = await probe(
+        'patch',
+        `/employees/${employeeId}`,
+        (req) =>
+          asOwner(req).send({
+            jobTitle: 'Head of People',
+            phone: '+1 503 555 0142',
+          }),
+        '200',
+      );
+      expect(updated.body.jobTitle).toBe('Head of People');
+
+      await probe(
+        'patch',
+        `/employees/${employeeId}`,
+        (req) => asOwner(req).send({ name: '   ' }),
+        '400',
+        'empty name',
+      );
+      await probe(
+        'patch',
+        `/employees/${employeeId}`,
+        (req) => req.send({ name: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/employees/${employeeId}`,
+        (req) => asOutsider(req).send({ name: 'Anonymous' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/employees/${unknown}`,
+        (req) => asOwner(req).send({ name: 'Nobody' }),
+        '404',
+        'unknown employee',
+      );
+      await probe(
+        'patch',
+        `/employees/${secondEmployeeId}`,
+        (req) => asOwner(req).send({ employeeNumber: 'HR-001' }),
+        '409',
+        'employee number already used',
+      );
+    });
+
+    it('POST /employees/{employeeId}/status returns 200, 400, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        `/employees/${employeeId}/status`,
+        (req) => asOwner(req).send({ status: 'nope' }),
+        '400',
+        'unknown status',
+      );
+      await probe(
+        'post',
+        `/employees/${employeeId}/status`,
+        (req) => req.send({ status: 'probation' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/employees/${employeeId}/status`,
+        (req) => asOutsider(req).send({ status: 'probation' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/employees/${unknown}/status`,
+        (req) => asOwner(req).send({ status: 'probation' }),
+        '404',
+        'unknown employee',
+      );
+
+      const changed = await probe(
+        'post',
+        `/employees/${employeeId}/status`,
+        (req) => asOwner(req).send({ status: 'probation' }),
+        '200',
+      );
+      expect(changed.body.status).toBe('probation');
+
+      const restored = await probe(
+        'post',
+        `/employees/${employeeId}/status`,
+        (req) => asOwner(req).send({ status: 'active' }),
+        '200',
+      );
+      expect(restored.body.status).toBe('active');
+      expect(restored.body.terminationDate).toBeNull();
+    });
+
+    it('POST /leave-types returns 400, 401, 403, 409 and 201', async () => {
+      await probe(
+        'post',
+        '/leave-types',
+        (req) => req.send({ name: 'Study Leave' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/leave-types',
+        (req) => asOutsider(req).send({ name: 'Study Leave' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/leave-types',
+        (req) => asOwner(req).send({ name: '   ' }),
+        '400',
+        'empty name',
+      );
+
+      const created = await probe(
+        'post',
+        '/leave-types',
+        (req) =>
+          asOwner(req).send({
+            name: 'Study Leave',
+            description: 'Exams and professional development.',
+            defaultEntitlementDays: 5,
+            paid: true,
+          }),
+        '201',
+      );
+      leaveTypeId = created.body.id;
+      expect(created.body).toMatchObject({
+        name: 'Study Leave',
+        defaultEntitlementDays: 5,
+        paid: true,
+        status: 'active',
+      });
+
+      await probe(
+        'post',
+        '/leave-types',
+        (req) => asOwner(req).send({ name: 'Study Leave' }),
+        '409',
+        'duplicate leave type',
+      );
+    });
+
+    it('GET /leave-types returns 200, 400, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/leave-types',
+        (req) => asOwner(req),
+        '200',
+      );
+      const names = listed.body.items.map((row: { name: string }) => row.name);
+      expect(names).toEqual(
+        expect.arrayContaining(['Annual Leave', 'Study Leave']),
+      );
+
+      await probe(
+        'get',
+        '/leave-types',
+        (req) => asOwner(req).query({ status: 'nope' }),
+        '400',
+        'unknown status filter',
+      );
+      await probe('get', '/leave-types', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/leave-types',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /leave-types/{leaveTypeId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/leave-types/${leaveTypeId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.name).toBe('Study Leave');
+
+      await probe(
+        'get',
+        `/leave-types/${leaveTypeId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/leave-types/${leaveTypeId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/leave-types/${unknown}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown leave type',
+      );
+    });
+
+    it('PATCH /leave-types/{leaveTypeId} returns 200, 400, 401, 403, 404 and 409', async () => {
+      const updated = await probe(
+        'patch',
+        `/leave-types/${leaveTypeId}`,
+        (req) =>
+          asOwner(req).send({
+            description: 'Exams, study days and professional development.',
+            defaultEntitlementDays: 6,
+          }),
+        '200',
+      );
+      expect(updated.body.defaultEntitlementDays).toBe(6);
+
+      await probe(
+        'patch',
+        `/leave-types/${leaveTypeId}`,
+        (req) => asOwner(req).send({ name: '   ' }),
+        '400',
+        'empty name',
+      );
+      await probe(
+        'patch',
+        `/leave-types/${leaveTypeId}`,
+        (req) => req.send({ name: 'Study Leave' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/leave-types/${leaveTypeId}`,
+        (req) => asOutsider(req).send({ name: 'Study Leave' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/leave-types/${unknown}`,
+        (req) => asOwner(req).send({ name: 'Study Leave' }),
+        '404',
+        'unknown leave type',
+      );
+      await probe(
+        'patch',
+        `/leave-types/${leaveTypeId}`,
+        (req) => asOwner(req).send({ name: 'Annual Leave' }),
+        '409',
+        'name already used',
+      );
+    });
+
+    it('deactivates and activates a leave type', async () => {
+      await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/deactivate`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/deactivate`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/leave-types/${unknown}/deactivate`,
+        (req) => asOwner(req),
+        '404',
+        'unknown leave type',
+      );
+
+      const inactive = await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/deactivate`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(inactive.body.status).toBe('inactive');
+
+      await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/activate`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/activate`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/leave-types/${unknown}/activate`,
+        (req) => asOwner(req),
+        '404',
+        'unknown leave type',
+      );
+
+      const active = await probe(
+        'post',
+        `/leave-types/${leaveTypeId}/activate`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(active.body.status).toBe('active');
+    });
+
+    it('POST /leave-requests returns 400, 401, 403, 404, 409 and 201', async () => {
+      await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          req.send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2026-12-01',
+            endDate: '2026-12-03',
+          }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOutsider(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2026-12-01',
+            endDate: '2026-12-03',
+          }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2026-12-10',
+            endDate: '2026-12-01',
+          }),
+        '400',
+        'end before start',
+      );
+      await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId: unknown,
+            leaveTypeId,
+            startDate: '2026-12-01',
+            endDate: '2026-12-03',
+          }),
+        '404',
+        'unknown employee',
+      );
+
+      const created = await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2026-12-01',
+            endDate: '2026-12-03',
+            reason: 'Winter exams.',
+          }),
+        '201',
+      );
+      leaveRequestId = created.body.id;
+      expect(created.body).toMatchObject({
+        employeeId,
+        leaveTypeId,
+        days: 3,
+        status: 'pending',
+        reason: 'Winter exams.',
+      });
+
+      await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2026-12-02',
+            endDate: '2026-12-04',
+          }),
+        '409',
+        'overlapping leave',
+      );
+
+      const pending = await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2027-01-10',
+            endDate: '2027-01-11',
+          }),
+        '201',
+      );
+      pendingRequestId = pending.body.id;
+
+      const cancelled = await probe(
+        'post',
+        '/leave-requests',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            leaveTypeId,
+            startDate: '2027-02-01',
+            endDate: '2027-02-02',
+          }),
+        '201',
+      );
+      cancelledRequestId = cancelled.body.id;
+    });
+
+    it('GET /leave-requests returns 200, 400, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/leave-requests',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(
+        listed.body.items.map((row: { id: string }) => row.id),
+      ).toEqual(
+        expect.arrayContaining([
+          leaveRequestId,
+          pendingRequestId,
+          cancelledRequestId,
+        ]),
+      );
+
+      await probe(
+        'get',
+        '/leave-requests',
+        (req) => asOwner(req).query({ status: 'nope' }),
+        '400',
+        'unknown status filter',
+      );
+      await probe('get', '/leave-requests', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/leave-requests',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /leave-requests/{leaveRequestId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/leave-requests/${leaveRequestId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.status).toBe('pending');
+
+      await probe(
+        'get',
+        `/leave-requests/${leaveRequestId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/leave-requests/${leaveRequestId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/leave-requests/${unknown}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown leave request',
+      );
+    });
+
+    it('POST /leave-requests/{leaveRequestId}/approve returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/leave-requests/${leaveRequestId}/approve`,
+        (req) => asOwner(req).send({ decisionNote: 42 }),
+        '400',
+        'note is not text',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${leaveRequestId}/approve`,
+        (req) => req.send({}),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${leaveRequestId}/approve`,
+        (req) => asOutsider(req).send({}),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${unknown}/approve`,
+        (req) => asOwner(req).send({}),
+        '404',
+        'unknown leave request',
+      );
+
+      const approved = await probe(
+        'post',
+        `/leave-requests/${leaveRequestId}/approve`,
+        (req) => asOwner(req).send({ decisionNote: 'Approved.' }),
+        '200',
+      );
+      expect(approved.body).toMatchObject({
+        status: 'approved',
+        decisionNote: 'Approved.',
+      });
+      expect(approved.body.decidedAt).toEqual(expect.any(String));
+
+      await probe(
+        'post',
+        `/leave-requests/${leaveRequestId}/approve`,
+        (req) => asOwner(req).send({}),
+        '409',
+        'already decided',
+      );
+    });
+
+    it('PATCH /leave-requests/{leaveRequestId} returns 200, 400, 401, 403, 404 and 409', async () => {
+      const updated = await probe(
+        'patch',
+        `/leave-requests/${pendingRequestId}`,
+        (req) => asOwner(req).send({ reason: 'Rescheduled exams.' }),
+        '200',
+      );
+      expect(updated.body.reason).toBe('Rescheduled exams.');
+
+      await probe(
+        'patch',
+        `/leave-requests/${pendingRequestId}`,
+        (req) =>
+          asOwner(req).send({
+            startDate: '2027-01-20',
+            endDate: '2027-01-11',
+          }),
+        '400',
+        'end before start',
+      );
+      await probe(
+        'patch',
+        `/leave-requests/${pendingRequestId}`,
+        (req) => req.send({ reason: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/leave-requests/${pendingRequestId}`,
+        (req) => asOutsider(req).send({ reason: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/leave-requests/${unknown}`,
+        (req) => asOwner(req).send({ reason: 'Nobody' }),
+        '404',
+        'unknown leave request',
+      );
+      await probe(
+        'patch',
+        `/leave-requests/${leaveRequestId}`,
+        (req) => asOwner(req).send({ reason: 'Too late' }),
+        '409',
+        'approved leave is read-only',
+      );
+    });
+
+    it('POST /leave-requests/{leaveRequestId}/reject returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/leave-requests/${pendingRequestId}/reject`,
+        (req) => asOwner(req).send({ decisionNote: 42 }),
+        '400',
+        'note is not text',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${pendingRequestId}/reject`,
+        (req) => req.send({}),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${pendingRequestId}/reject`,
+        (req) => asOutsider(req).send({}),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${unknown}/reject`,
+        (req) => asOwner(req).send({}),
+        '404',
+        'unknown leave request',
+      );
+
+      const rejected = await probe(
+        'post',
+        `/leave-requests/${pendingRequestId}/reject`,
+        (req) => asOwner(req).send({ decisionNote: 'Cover unavailable.' }),
+        '200',
+      );
+      expect(rejected.body.status).toBe('rejected');
+
+      await probe(
+        'post',
+        `/leave-requests/${pendingRequestId}/reject`,
+        (req) => asOwner(req).send({}),
+        '409',
+        'already decided',
+      );
+    });
+
+    it('POST /leave-requests/{leaveRequestId}/cancel returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/leave-requests/${cancelledRequestId}/cancel`,
+        (req) => asOwner(req).send({ decisionNote: 42 }),
+        '400',
+        'note is not text',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${cancelledRequestId}/cancel`,
+        (req) => req.send({}),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${cancelledRequestId}/cancel`,
+        (req) => asOutsider(req).send({}),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/leave-requests/${unknown}/cancel`,
+        (req) => asOwner(req).send({}),
+        '404',
+        'unknown leave request',
+      );
+
+      const cancelled = await probe(
+        'post',
+        `/leave-requests/${cancelledRequestId}/cancel`,
+        (req) =>
+          asOwner(req).send({ decisionNote: 'Plans changed.' }),
+        '200',
+      );
+      expect(cancelled.body.status).toBe('cancelled');
+      expect(cancelled.body.cancelledAt).toEqual(expect.any(String));
+
+      await probe(
+        'post',
+        `/leave-requests/${cancelledRequestId}/cancel`,
+        (req) => asOwner(req).send({}),
+        '409',
+        'already cancelled',
+      );
+    });
+
+    it('GET /employees/{employeeId}/leave-balances returns 200, 400, 401, 403 and 404', async () => {
+      const balances = await probe(
+        'get',
+        `/employees/${employeeId}/leave-balances`,
+        (req) => asOwner(req).query({ year: 2026 }),
+        '200',
+      );
+      const study = balances.body.balances.find(
+        (row: { leaveTypeId: string }) => row.leaveTypeId === leaveTypeId,
+      );
+      expect(study).toMatchObject({
+        entitlementDays: 6,
+        approvedDays: 3,
+        pendingDays: 0,
+        remainingDays: 3,
+      });
+
+      await probe(
+        'get',
+        `/employees/${employeeId}/leave-balances`,
+        (req) => asOwner(req).query({ year: 1999 }),
+        '400',
+        'year below the documented minimum',
+      );
+      await probe(
+        'get',
+        `/employees/${employeeId}/leave-balances`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/employees/${employeeId}/leave-balances`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/employees/${unknown}/leave-balances`,
+        (req) => asOwner(req),
+        '404',
+        'unknown employee',
+      );
+    });
+
+    it('POST /performance-reviews returns 201, 400, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          req.send({
+            employeeId,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-06-30',
+          }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          asOutsider(req).send({
+            employeeId,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-06-30',
+          }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            periodStart: '2026-06-30',
+            periodEnd: '2026-01-01',
+          }),
+        '400',
+        'period ends before it starts',
+      );
+      await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          asOwner(req).send({
+            employeeId: unknown,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-06-30',
+          }),
+        '404',
+        'unknown employee',
+      );
+
+      const created = await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-06-30',
+            reviewDate: '2026-07-05',
+            rating: 4,
+            summary: 'Strong half with reliable delivery.',
+          }),
+        '201',
+      );
+      reviewId = created.body.id;
+      expect(created.body).toMatchObject({
+        employeeId,
+        rating: 4,
+        status: 'draft',
+      });
+      expect(created.body.reviewerId).toEqual(expect.any(String));
+
+      const unrated = await probe(
+        'post',
+        '/performance-reviews',
+        (req) =>
+          asOwner(req).send({
+            employeeId,
+            periodStart: '2026-07-01',
+            periodEnd: '2026-12-31',
+          }),
+        '201',
+      );
+      unratedReviewId = unrated.body.id;
+      expect(unrated.body.rating).toBeNull();
+    });
+
+    it('GET /performance-reviews returns 200, 400, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/performance-reviews',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(
+        listed.body.items.map((row: { id: string }) => row.id),
+      ).toEqual(expect.arrayContaining([reviewId, unratedReviewId]));
+
+      await probe(
+        'get',
+        '/performance-reviews',
+        (req) => asOwner(req).query({ status: 'nope' }),
+        '400',
+        'unknown status filter',
+      );
+      await probe(
+        'get',
+        '/performance-reviews',
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        '/performance-reviews',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /performance-reviews/{reviewId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/performance-reviews/${reviewId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.status).toBe('draft');
+
+      await probe(
+        'get',
+        `/performance-reviews/${reviewId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/performance-reviews/${reviewId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/performance-reviews/${unknown}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown review',
+      );
+    });
+
+    it('PATCH /performance-reviews/{reviewId} returns 200, 400, 401, 403, 404 and 409', async () => {
+      const updated = await probe(
+        'patch',
+        `/performance-reviews/${reviewId}`,
+        (req) =>
+          asOwner(req).send({
+            strengths: 'Owns the hiring pipeline end to end.',
+            goals: 'Lead the Q3 onboarding refresh.',
+          }),
+        '200',
+      );
+      expect(updated.body.goals).toBe('Lead the Q3 onboarding refresh.');
+
+      await probe(
+        'patch',
+        `/performance-reviews/${reviewId}`,
+        (req) =>
+          asOwner(req).send({
+            periodStart: '2026-06-30',
+            periodEnd: '2026-01-01',
+          }),
+        '400',
+        'period ends before it starts',
+      );
+      await probe(
+        'patch',
+        `/performance-reviews/${reviewId}`,
+        (req) => req.send({ summary: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/performance-reviews/${reviewId}`,
+        (req) => asOutsider(req).send({ summary: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/performance-reviews/${unknown}`,
+        (req) => asOwner(req).send({ summary: 'Nobody' }),
+        '404',
+        'unknown review',
+      );
+    });
+
+    it('POST /performance-reviews/{reviewId}/submit returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/submit`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/submit`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/performance-reviews/${unknown}/submit`,
+        (req) => asOwner(req),
+        '404',
+        'unknown review',
+      );
+      await probe(
+        'post',
+        `/performance-reviews/${unratedReviewId}/submit`,
+        (req) => asOwner(req),
+        '400',
+        'rating is required',
+      );
+
+      const submitted = await probe(
+        'post',
+        `/performance-reviews/${reviewId}/submit`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(submitted.body.status).toBe('submitted');
+      expect(submitted.body.submittedAt).toEqual(expect.any(String));
+
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/submit`,
+        (req) => asOwner(req),
+        '409',
+        'already submitted',
+      );
+      await probe(
+        'patch',
+        `/performance-reviews/${reviewId}`,
+        (req) => asOwner(req).send({ summary: 'Too late' }),
+        '409',
+        'submitted review is read-only',
+      );
+    });
+
+    it('POST /performance-reviews/{reviewId}/acknowledge returns 200, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/acknowledge`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/acknowledge`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/performance-reviews/${unknown}/acknowledge`,
+        (req) => asOwner(req),
+        '404',
+        'unknown review',
+      );
+
+      const acknowledged = await probe(
+        'post',
+        `/performance-reviews/${reviewId}/acknowledge`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(acknowledged.body.status).toBe('acknowledged');
+      expect(acknowledged.body.acknowledgedAt).toEqual(expect.any(String));
+
+      await probe(
+        'post',
+        `/performance-reviews/${reviewId}/acknowledge`,
+        (req) => asOwner(req),
+        '409',
+        'already acknowledged',
+      );
+    });
+  });
+
   describe('clients', () => {
     let clientId = '';
     let trashClientId = '';

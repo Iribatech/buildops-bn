@@ -1,5 +1,10 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExcludeController,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PaginatedSchema } from '../common/dto/paginated-response.dto.js';
 import { OrgAuth, type OrganizationAuthContext } from '../common/decorators/org-auth.decorator.js';
 import {
@@ -14,6 +19,7 @@ import { ActivityService } from './activity.service.js';
 
 const ActivityPageDto = PaginatedSchema(ActivityResponseDto, 'ActivityPage');
 
+@ApiExcludeController()
 @ApiTags('activity')
 @Protected()
 @Controller('activity')

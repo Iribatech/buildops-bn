@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Max,
   MaxLength,
@@ -19,10 +20,24 @@ import {
 import { PaginationQueryDto } from '../../common/pagination.dto.js';
 
 export class CreateHumanResourceDto {
-  @ApiProperty({ example: 'Jordan Ellis' })
+  @ApiPropertyOptional({
+    example: '5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e',
+    description:
+      'Organization employee this assignment is for; name and contact details default from the employee when omitted',
+  })
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional({
+    example: 'Jordan Ellis',
+    description:
+      'Overrides the employee name, or names a person not in the HR directory',
+  })
+  @IsOptional()
   @IsString()
   @Length(1, 255)
-  name: string;
+  name?: string;
 
   @ApiPropertyOptional({
     example: 'jordan.ellis@ridgelineconstruction.com',
@@ -89,6 +104,15 @@ export class CreateHumanResourceDto {
 }
 
 export class UpdateHumanResourceDto {
+  @ApiPropertyOptional({
+    example: '5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e',
+    nullable: true,
+    description: 'Null unlinks the assignment from the HR directory',
+  })
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string | null;
+
   @ApiPropertyOptional({ example: 'Jordan Ellis' })
   @IsOptional()
   @IsString()
@@ -159,6 +183,15 @@ export class HumanResourceResponseDto {
   @ApiProperty({ example: 'b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33' })
   projectId: string;
 
+  @ApiPropertyOptional({
+    example: '5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e',
+    nullable: true,
+  })
+  employeeId: string | null;
+
+  @ApiPropertyOptional({ example: 'Jordan Ellis', nullable: true })
+  employeeName: string | null;
+
   @ApiProperty({ example: 'Jordan Ellis' })
   name: string;
 
@@ -205,6 +238,14 @@ export class HumanResourceResponseDto {
 }
 
 export class HumanResourceQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({
+    example: '5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e',
+    description: 'Filter by linked employee',
+  })
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
   @ApiPropertyOptional({
     enum: HUMAN_RESOURCE_ROLES,
     description: 'Filter by project function',

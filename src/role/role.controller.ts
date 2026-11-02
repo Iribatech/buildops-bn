@@ -120,7 +120,7 @@ export class RoleController {
   @ApiOperation({
     summary: 'List role templates',
     description:
-      'Reusable default role templates (owner, project_manager, developer, tester, viewer) and the full permission catalog.',
+      'Reusable default role templates (owner, project_manager, hr_manager, developer, tester, viewer) and the full permission catalog.',
   })
   @ApiResponse({
     description: 'The default role templates and the permission catalog',

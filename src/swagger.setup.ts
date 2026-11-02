@@ -26,6 +26,18 @@ const TAGS: [name: string, description: string][] = [
   ],
   ['teams', 'Teams within an organization'],
   ['departments', 'Departments within an organization'],
+  [
+    'employees',
+    'Organization-wide employee records, reporting lines and lifecycle',
+  ],
+  [
+    'leave',
+    'Leave types, leave requests, entitlements and per-employee balances',
+  ],
+  [
+    'performance-reviews',
+    'Performance reviews: drafts, submission and employee acknowledgement',
+  ],
   ['human-resources', 'People, functions, rates and allocations on a project'],
   ['clients', 'Clients within an organization'],
   ['projects', 'Projects within an organization'],

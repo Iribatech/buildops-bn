@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import {
 } from 'typeorm';
 import { Organization } from '../organization/organization.entity.js';
 import { Project } from '../project/project.entity.js';
+import { Employee } from '../employee/employee.entity.js';
 import {
   HUMAN_RESOURCE_ROLES,
   HUMAN_RESOURCE_STATUSES,
@@ -28,6 +30,10 @@ const inList = (values: readonly string[]): string =>
  * visible for history and billing review.
  */
 @Entity('project_human_resources')
+@Index('IDX_project_human_resources_org_employee', [
+  'organizationId',
+  'employeeId',
+])
 @Check(
   `CHK_project_human_resources_role`,
   `"role" IN (${inList(HUMAN_RESOURCE_ROLES)})`,
@@ -57,6 +63,18 @@ export class HumanResource {
   @ManyToOne(() => Project, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'project_id' })
   project: Project;
+
+  /**
+   * The organization employee this assignment belongs to, when the register
+   * entry is about a real employee. Optional so a project can still list a
+   * contractor or a person who has not been added to the HR directory yet.
+   */
+  @Column({ name: 'employee_id', type: 'uuid', nullable: true })
+  employeeId: string | null;
+
+  @ManyToOne(() => Employee, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'employee_id' })
+  employee: Employee | null;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
@@ -110,6 +128,8 @@ export class HumanResource {
       id: this.id,
       organizationId: this.organizationId,
       projectId: this.projectId,
+      employeeId: this.employeeId,
+      employeeName: this.employee?.name ?? null,
       name: this.name,
       email: this.email,
       phone: this.phone,

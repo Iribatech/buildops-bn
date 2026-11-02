@@ -8,7 +8,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExcludeController,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OrgAuth, type OrganizationAuthContext } from '../common/decorators/org-auth.decorator.js';
 import { OrganizationHeader, Protected, RequirePermissions } from '../common/decorators/protected.decorator.js';
 import { PERMISSIONS } from '../common/permissions.js';
@@ -16,6 +21,7 @@ import { PaginationQueryDto } from '../common/pagination.dto.js';
 import { CommentService } from './comment.service.js';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto.js';
 
+@ApiExcludeController()
 @ApiTags('comments')
 @Protected()
 @Controller('comments')

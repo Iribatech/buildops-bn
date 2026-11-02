@@ -23,6 +23,10 @@ export const ACTIVITY_ENTITY_TYPES = [
   'human_resource',
   'client',
   'comment',
+  'employee',
+  'leave_type',
+  'leave_request',
+  'performance_review',
 ] as const;
 
 export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[number];

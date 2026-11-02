@@ -10,6 +10,10 @@ import { Team } from '../team/team.entity.js';
 import { TeamMember } from '../team/team-member.entity.js';
 import { Department } from '../department/department.entity.js';
 import { HumanResource } from '../human-resource/human-resource.entity.js';
+import { Employee } from '../employee/employee.entity.js';
+import { LeaveType } from '../leave/leave-type.entity.js';
+import { LeaveRequest } from '../leave/leave-request.entity.js';
+import { PerformanceReview } from '../performance-review/performance-review.entity.js';
 import { Client } from '../client/client.entity.js';
 import { Project } from '../project/project.entity.js';
 import { Task } from '../task/task.entity.js';
@@ -40,6 +44,10 @@ export const ENTITIES = [
   TeamMember,
   Department,
   HumanResource,
+  Employee,
+  LeaveType,
+  LeaveRequest,
+  PerformanceReview,
   Client,
   Project,
   Task,

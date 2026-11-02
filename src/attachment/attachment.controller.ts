@@ -10,13 +10,20 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiExcludeController,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OrgAuth, type OrganizationAuthContext } from '../common/decorators/org-auth.decorator.js';
 import { OrganizationHeader, Protected, RequirePermissions } from '../common/decorators/protected.decorator.js';
 import { PERMISSIONS } from '../common/permissions.js';
 import { AttachmentService } from './attachment.service.js';
 import type { Response } from 'express';
 
+@ApiExcludeController()
 @ApiTags('attachments')
 @Protected()
 @Controller('attachments')

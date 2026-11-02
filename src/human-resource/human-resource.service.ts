@@ -11,6 +11,7 @@ import {
   type Paginated,
 } from '../common/pagination.dto.js';
 import { Project } from '../project/project.entity.js';
+import { EmployeeService } from '../employee/employee.service.js';
 import { HumanResource } from './human-resource.entity.js';
 import {
   CreateHumanResourceDto,
@@ -26,6 +27,7 @@ export class HumanResourceService {
     private readonly humanResourceRepo: Repository<HumanResource>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    private readonly employeeService: EmployeeService,
     private readonly activity: ActivityService,
   ) {}
 
@@ -38,6 +40,9 @@ export class HumanResourceService {
 
     const { page, limit, skip } = resolvePage(query);
     const where: Record<string, unknown> = { organizationId, projectId };
+    if (query.employeeId) {
+      where.employeeId = query.employeeId;
+    }
     if (query.role) {
       where.role = query.role;
     }
@@ -47,6 +52,7 @@ export class HumanResourceService {
 
     const [items, total] = await this.humanResourceRepo.findAndCount({
       where,
+      relations: { employee: true },
       order: { name: 'ASC' },
       skip,
       take: limit,
@@ -64,6 +70,7 @@ export class HumanResourceService {
 
     const humanResource = await this.humanResourceRepo.findOne({
       where: { id: humanResourceId, organizationId, projectId },
+      relations: { employee: true },
     });
 
     if (!humanResource) {
@@ -83,13 +90,28 @@ export class HumanResourceService {
     await this.assertProject(organizationId, projectId);
     this.assertDateOrder(dto.startDate, dto.endDate);
 
+    const employee = dto.employeeId
+      ? await this.employeeService.assertEmployee(
+          organizationId,
+          dto.employeeId,
+        )
+      : null;
+
     const created = await this.humanResourceRepo.save(
       this.humanResourceRepo.create({
         organizationId,
         projectId,
-        name: this.normalizeName(dto.name),
-        email: dto.email ? this.normalizeEmail(dto.email) : null,
-        phone: this.normalizeOptionalText(dto.phone),
+        employeeId: employee?.id ?? null,
+        employee,
+        name: this.resolveName(dto.name, employee?.name),
+        email:
+          dto.email !== undefined
+            ? this.normalizeEmail(dto.email)
+            : (employee?.email ?? null),
+        phone:
+          dto.phone !== undefined
+            ? this.normalizeOptionalText(dto.phone)
+            : (employee?.phone ?? null),
         role: dto.role,
         allocationPercent: dto.allocationPercent ?? 100,
         hourlyRate:
@@ -112,7 +134,7 @@ export class HumanResourceService {
       projectId,
     });
 
-    return created;
+    return this.findOne(organizationId, projectId, created.id);
   }
 
   async update(
@@ -127,6 +149,19 @@ export class HumanResourceService {
       humanResourceId,
     );
 
+    if (dto.employeeId !== undefined) {
+      if (dto.employeeId === null) {
+        humanResource.employeeId = null;
+        humanResource.employee = null;
+      } else {
+        const employee = await this.employeeService.assertEmployee(
+          organizationId,
+          dto.employeeId,
+        );
+        humanResource.employeeId = employee.id;
+        humanResource.employee = employee;
+      }
+    }
     if (dto.name !== undefined) {
       humanResource.name = this.normalizeName(dto.name);
     }
@@ -209,12 +244,16 @@ export class HumanResourceService {
     }
   }
 
-  private normalizeName(name: string): string {
-    const trimmed = name.trim();
+  private resolveName(name: string | undefined, fallback?: string): string {
+    return this.normalizeName(name ?? fallback);
+  }
+
+  private normalizeName(name: string | undefined): string {
+    const trimmed = name?.trim();
 
     if (!trimmed) {
       throw new BadRequestException(
-        'Human resource name cannot be empty',
+        'A name is required when the assignment is not linked to an employee',
       );
     }
 

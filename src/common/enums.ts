@@ -182,6 +182,67 @@ export const HUMAN_RESOURCE_ROLES = [
 
 export const HUMAN_RESOURCE_STATUSES = ['active', 'inactive'] as const;
 
+/**
+ * How an employee is engaged.
+ *
+ * Kept separate from the employee lifecycle because the two answer different
+ * questions: `employmentType` is the contract, `status` is where the person is
+ * in it. A contractor on probation is a real combination.
+ */
+export const EMPLOYMENT_TYPES = [
+  'full_time',
+  'part_time',
+  'contractor',
+  'intern',
+  'temporary',
+] as const;
+
+export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
+
+/**
+ * The lifecycle of a person's employment, not of their login account.
+ *
+ * `terminated` is terminal for the employment but not for the record: the row
+ * stays visible so payroll, project history and reviews still have a person to
+ * point at. `on_leave` covers long absence (parental, medical) and is different
+ * from a leave request, which is a dated absence within an employment.
+ */
+export const EMPLOYEE_STATUSES = [
+  'active',
+  'probation',
+  'on_leave',
+  'terminated',
+] as const;
+
+export type EmployeeStatus = (typeof EMPLOYEE_STATUSES)[number];
+
+export const LEAVE_TYPE_STATUSES = ['active', 'inactive'] as const;
+
+/**
+ * The states of a leave request.
+ *
+ * `cancelled` is reachable from `pending` and `approved`: an approved holiday
+ * that no longer happens has to give its days back to the balance. `rejected`
+ * and `cancelled` are both terminal; neither consumes entitlement.
+ */
+export const LEAVE_REQUEST_STATUSES = [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+] as const;
+
+export type LeaveRequestStatus = (typeof LEAVE_REQUEST_STATUSES)[number];
+
+export const PERFORMANCE_REVIEW_STATUSES = [
+  'draft',
+  'submitted',
+  'acknowledged',
+] as const;
+
+export type PerformanceReviewStatus =
+  (typeof PERFORMANCE_REVIEW_STATUSES)[number];
+
 export const TEAM_MEMBER_STATUSES = [
   'pending',
   'active',
