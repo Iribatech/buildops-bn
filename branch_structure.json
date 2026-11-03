@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "develop",
+    "feature/departments-project-hr",
+    "feature/realtime-chat",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "develop": "main",
+    "feature/departments-project-hr": "main",
+    "feature/realtime-chat": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "develop",
+    "feature/departments-project-hr",
+    "feature/realtime-chat",
+    "origin"
+  ]
+}

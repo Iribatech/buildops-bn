@@ -138,6 +138,42 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   // Soft deletes: the trash listing and the restore of one record.
   ['GET', '/teams/trash', ['200']],
   ['POST', '/teams/{teamId}/restore', ['201']],
+  // Departments use an active/inactive lifecycle, not trash and restore.
+  ['POST', '/departments', ['201']],
+  ['GET', '/departments', ['200']],
+  ['GET', '/departments/{departmentId}', ['200']],
+  ['PATCH', '/departments/{departmentId}', ['200']],
+  ['POST', '/departments/{departmentId}/deactivate', ['200']],
+  ['POST', '/departments/{departmentId}/activate', ['200']],
+  // Employees are the organization-wide HR record behind every project
+  // assignment; the lifecycle is a status route, not delete and restore.
+  ['POST', '/employees', ['201']],
+  ['GET', '/employees', ['200']],
+  ['GET', '/employees/{employeeId}', ['200']],
+  ['PATCH', '/employees/{employeeId}', ['200']],
+  ['POST', '/employees/{employeeId}/status', ['200']],
+  // The leave catalogue and the requests decided against it.
+  ['POST', '/leave-types', ['201']],
+  ['GET', '/leave-types', ['200']],
+  ['GET', '/leave-types/{leaveTypeId}', ['200']],
+  ['PATCH', '/leave-types/{leaveTypeId}', ['200']],
+  ['POST', '/leave-types/{leaveTypeId}/deactivate', ['200']],
+  ['POST', '/leave-types/{leaveTypeId}/activate', ['200']],
+  ['POST', '/leave-requests', ['201']],
+  ['GET', '/leave-requests', ['200']],
+  ['GET', '/leave-requests/{leaveRequestId}', ['200']],
+  ['PATCH', '/leave-requests/{leaveRequestId}', ['200']],
+  ['POST', '/leave-requests/{leaveRequestId}/approve', ['200']],
+  ['POST', '/leave-requests/{leaveRequestId}/reject', ['200']],
+  ['POST', '/leave-requests/{leaveRequestId}/cancel', ['200']],
+  ['GET', '/employees/{employeeId}/leave-balances', ['200']],
+  // Performance reviews move draft -> submitted -> acknowledged.
+  ['POST', '/performance-reviews', ['201']],
+  ['GET', '/performance-reviews', ['200']],
+  ['GET', '/performance-reviews/{reviewId}', ['200']],
+  ['PATCH', '/performance-reviews/{reviewId}', ['200']],
+  ['POST', '/performance-reviews/{reviewId}/submit', ['200']],
+  ['POST', '/performance-reviews/{reviewId}/acknowledge', ['200']],
   // Clients.
   ['POST', '/clients', ['201']],
   ['GET', '/clients', ['200']],
@@ -162,6 +198,29 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['DELETE', '/projects/{projectId}', ['200']],
   ['GET', '/projects/trash', ['200']],
   ['POST', '/projects/{projectId}/restore', ['201']],
+  // Project human resources use an active/inactive lifecycle, not trash.
+  ['POST', '/projects/{projectId}/human-resources', ['201']],
+  ['GET', '/projects/{projectId}/human-resources', ['200']],
+  [
+    'GET',
+    '/projects/{projectId}/human-resources/{humanResourceId}',
+    ['200'],
+  ],
+  [
+    'PATCH',
+    '/projects/{projectId}/human-resources/{humanResourceId}',
+    ['200'],
+  ],
+  [
+    'POST',
+    '/projects/{projectId}/human-resources/{humanResourceId}/deactivate',
+    ['200'],
+  ],
+  [
+    'POST',
+    '/projects/{projectId}/human-resources/{humanResourceId}/activate',
+    ['200'],
+  ],
   // Tasks, and the subtasks nested under them.
   ['POST', '/tasks', ['201']],
   ['GET', '/tasks', ['200']],
@@ -202,6 +261,29 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['DELETE', '/tasks/{taskId}/subtasks/{subtaskId}', ['200']],
   ['GET', '/tasks/{taskId}/subtasks/trash', ['200']],
   ['POST', '/tasks/{taskId}/subtasks/{subtaskId}/restore', ['201']],
+  // Milestones group a project's deliveries under target dates.
+  ['POST', '/milestones', ['201']],
+  ['GET', '/milestones', ['200']],
+  ['GET', '/milestones/trash', ['200']],
+  ['POST', '/milestones/{milestoneId}/restore', ['201']],
+  ['GET', '/milestones/{milestoneId}', ['200']],
+  ['PATCH', '/milestones/{milestoneId}', ['200']],
+  ['DELETE', '/milestones/{milestoneId}', ['200']],
+  // The activity trail, read-only and filterable by task, project or entity.
+  ['GET', '/activity', ['200']],
+  ['GET', '/activity/task/{taskId}', ['200']],
+  ['GET', '/activity/project/{projectId}', ['200']],
+  ['GET', '/activity/entity/{entityType}/{entityId}', ['200']],
+  // Comments, with mentions that notify the people named.
+  ['GET', '/comments/task/{taskId}', ['200']],
+  ['GET', '/comments/subtask/{subtaskId}', ['200']],
+  ['POST', '/comments', ['201']],
+  ['PATCH', '/comments/{commentId}', ['200']],
+  ['DELETE', '/comments/{commentId}', ['200']],
+  // Attachments are downloaded through the API, never from a public URL.
+  ['POST', '/attachments/upload', ['201']],
+  ['GET', '/attachments/task/{taskId}', ['200']],
+  ['GET', '/attachments/{attachmentId}/download', ['200']],
   // Time entries, including the running-timer endpoints.
   ['POST', '/time-entries', ['201']],
   ['GET', '/time-entries', ['200']],
@@ -241,6 +323,17 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['GET', '/dashboard/projects', ['200']],
   ['GET', '/dashboard/clients', ['200']],
   ['GET', '/dashboard/overdue', ['200']],
+  // Chat: rooms are ensured lazily per scope; messages are written only through
+  // REST and relayed to open sockets.
+  ['GET', '/chat/channels', ['200']],
+  ['POST', '/chat/channels', ['201']],
+  ['GET', '/chat/channels/scope', ['200']],
+  ['GET', '/chat/channels/{channelId}', ['200']],
+  ['GET', '/chat/channels/{channelId}/messages', ['200']],
+  ['POST', '/chat/channels/{channelId}/messages', ['201']],
+  ['PATCH', '/chat/messages/{messageId}', ['200']],
+  ['DELETE', '/chat/messages/{messageId}', ['200']],
+  ['POST', '/chat/channels/{channelId}/read', ['200']],
   // Activity analysis: four read-only projections over the same event trail,
   // all organization-scoped and range-filtered like the dashboard.
   ['GET', '/activity/timeline', ['200']],

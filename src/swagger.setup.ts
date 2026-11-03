@@ -25,11 +25,32 @@ const TAGS: [name: string, description: string][] = [
     'Invitations by email: sending, listing, revoking and accepting one',
   ],
   ['teams', 'Teams within an organization'],
+  ['departments', 'Departments within an organization'],
+  [
+    'employees',
+    'Organization-wide employee records, reporting lines and lifecycle',
+  ],
+  [
+    'leave',
+    'Leave types, leave requests, entitlements and per-employee balances',
+  ],
+  [
+    'performance-reviews',
+    'Performance reviews: drafts, submission and employee acknowledgement',
+  ],
+  ['human-resources', 'People, functions, rates and allocations on a project'],
   ['clients', 'Clients within an organization'],
   ['projects', 'Projects within an organization'],
   ['badges', 'Badges within an organization'],
   ['tasks', 'Tasks within projects'],
   ['subtasks', 'Subtasks under tasks, and the work assigned to you'],
+  ['milestones', 'Project milestones and their target dates'],
+  [
+    'activity',
+    'The organization activity trail: who changed what, newest first',
+  ],
+  ['comments', 'Comments on tasks and subtasks, with @mention support'],
+  ['attachments', 'Files attached to tasks, subtasks and comments'],
   [
     'notifications',
     'Your own in-app notifications, and the unread count behind the bell',
@@ -44,6 +65,10 @@ const TAGS: [name: string, description: string][] = [
   [
     'activity',
     'Activity trail and analytics: who did what, over time, ranked and broken down',
+  ],
+  [
+    'chat',
+    'Organization, project, task, subtask and direct conversations with unread tracking',
   ],
   [
     'settings',

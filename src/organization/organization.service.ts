@@ -14,6 +14,7 @@ import {
 } from '../common/pagination.dto.js';
 import { PlanLimitService } from '../plan-limit/plan-limit.service.js';
 import { RoleService } from '../role/role.service.js';
+import { LeaveService } from '../leave/leave.service.js';
 import { SubscriptionService } from '../subscription/subscription.service.js';
 import { DEFAULT_ORGANIZATION_CURRENCY } from '../common/enums.js';
 import { Organization } from './organization.entity.js';
@@ -35,6 +36,7 @@ export class OrganizationService {
     private readonly subscriptionService: SubscriptionService,
     private readonly planLimits: PlanLimitService,
     private readonly roleService: RoleService,
+    private readonly leaveService: LeaveService,
   ) {}
 
   async listForUser(
@@ -79,7 +81,7 @@ export class OrganizationService {
 
     // The tenant row is locked for the whole operation, so the organization
     // limit and the owner's member seat are checked and consumed atomically.
-    return this.planLimits.locked(
+    const organization = await this.planLimits.locked(
       subscription.id,
       async (limits, current) => {
         await limits.assertCanConsume(current, 'organizations');
@@ -108,6 +110,13 @@ export class OrganizationService {
         return organization;
       },
     );
+
+    // Seeding runs after the creation transaction so a failure here cannot
+    // leave default leave types pointing at a rolled-back organization. An
+    // organization without defaults is recoverable; orphan rows are not.
+    await this.leaveService.seedDefaults(organization.id);
+
+    return organization;
   }
 
   async update(id: string, dto: UpdateOrganizationDto): Promise<Organization> {

@@ -22,15 +22,16 @@ generated OpenAPI document (see [Live spec](#1-live-spec)).
 Every route below lives under the global prefix `api/v1` — include it in your
 `baseURL` so you never hard-code it in a path. `PORT` overrides `3000`.
 
-The document is published **one module at a time**. It currently covers **119
-endpoints** in 16 tag groups — `auth`, `plans`, `subscription`, `organizations`,
-`roles`, `invitations`, `teams`, `clients`, `projects`, `badges`, `tasks`,
-`subtasks`, `time-entries`, `time-complexity`, `dashboard` and `settings` — from
-`POST /auth/register` through the invitation flow. The liveness probe is the
-only controller still hidden with `@ApiExcludeController()`; a route that is
-missing from the document is not published yet. Where the document and this
-guide disagree, treat the Swagger document as the authority on shape and this
-guide as the authority on behaviour.
+The document covers **192 operations across 129 paths** in 28 tag groups —
+`auth`, `plans`, `subscription`, `billing`, `organizations`, `roles`,
+`invitations`, `teams`, `departments`, `employees`, `leave`,
+`performance-reviews`, `human-resources`, `clients`, `projects`, `badges`,
+`tasks`, `subtasks`, `milestones`, `activity`, `comments`, `attachments`,
+`notifications`, `time-entries`, `time-complexity`, `dashboard`, `chat` and
+`settings`. The liveness probe is the only controller hidden with
+`@ApiExcludeController()`. Where the document and this guide disagree, treat the
+Swagger document as the authority on shape and this guide as the authority on
+behaviour.
 
 Do not hand-maintain a client from this document: generate types from
 `docs/openapi.json` (openapi-typescript, Orval, `swagger-typescript-api`) and use
@@ -537,7 +538,9 @@ The API is the only enforcement point: hiding a button is UX, not security. Ever
 `organization.delete`, `member.view`, `member.invite`, `member.update`,
 `member.remove`, `role.view`, `role.create`, `role.update`, `role.delete`,
 `role.assign`, `permission.view`, `team.view`, `team.create`, `team.update`,
-`team.delete`, `team.member.add`, `team.member.remove`, `client.view`,
+`team.delete`, `team.member.add`, `team.member.remove`, `department.view`,
+`department.create`, `department.update`, `human_resource.view`,
+`human_resource.create`, `human_resource.update`, `client.view`,
 `client.create`, `client.update`, `client.delete`, `project.view`,
 `project.create`, `project.update`, `project.delete`, `badge.view`,
 `badge.create`, `badge.update`, `badge.delete`, `task.view`, `task.create`,
@@ -546,9 +549,7 @@ The API is the only enforcement point: hiding a button is UX, not security. Ever
 `time_entry.view_all`, `time_entry.create`, `time_entry.update`,
 `time_entry.delete`, `time_entry.start_timer`, `time_entry.stop_timer`,
 `time_complexity.view`, `time_complexity.create`, `time_complexity.update`,
-`time_complexity.delete`, `dashboard.view`, `notification.view`,
-`notification.update`, `notification.delete`, `settings.view`,
-`settings.update`, `chat.view`, `chat.create`, `chat.manage`, `analytics.view`
+`time_complexity.delete`, `dashboard.view`
 
 </details>
 
@@ -754,9 +755,10 @@ ordinary read, it does not destroy it, and the response says so.
 
 Trash and restore exist for **clients, projects, tasks, subtasks, time entries,
 badges and teams**. `time-complexity` records and organization members are not
-soft-deleted; those deletes are final. Chat messages are soft-deleted in
-database terms only — the room is told, the message leaves every list — but
-there is no trash entry and no restore for them (§9.10).
+soft-deleted; those deletes are final. A department has no delete route at all:
+deactivate it instead (§9.5). Project human resources work the same way: they are
+project staffing, so they are deactivated and reactivated rather than removed
+(§9.6).
 
 A trash entry is always the same shape:
 
@@ -799,7 +801,8 @@ expected one row and reads forty-seven has just been told something important
 about what the button does.
 
 Leaves need no confirmation: `clients`, `badges`, `teams` and a single
-`time entry` are removed with a plain `DELETE`.
+`time entry` are removed with a plain `DELETE`. Departments are never removed;
+use the activate/deactivate routes in §9.5.
 
 #### What a restore brings back
 
@@ -857,8 +860,7 @@ everywhere and are therefore not repeated per row:
 - `429` on every route, including the public ones — see §8.3.
 
 The Swagger document is authoritative; where a table here disagrees, the
-document wins. Rows for modules that are not published yet describe routes the
-API serves but the Swagger document does not yet list.
+document wins. Every module below is published in `docs/openapi.json`.
 
 ### 9.1 Public (no token)
 
@@ -997,7 +999,147 @@ team soft-deletes it along with its memberships and task assignments, but
 `GET /teams/trash` and `POST /teams/{teamId}/restore` to see it and bring it
 back; see [8.4](#84-deleting-trash-and-restore).
 
-### 9.5 Clients, projects, badges
+### 9.5 Departments
+
+All routes: `Org` required via header.
+
+| Method   | Path                                       | Perm                 | Errors              |
+| -------- | ------------------------------------------ | -------------------- | ------------------- |
+| `GET`    | `/departments` `?page&limit`               | `department.view`    | `403`               |
+| `POST`   | `/departments`                             | `department.create`  | `400`, `403`        |
+| `GET`    | `/departments/{departmentId}`              | `department.view`    | `403`, `404`        |
+| `PATCH`  | `/departments/{departmentId}`              | `department.update`  | `400`, `403`, `404` |
+| `POST`   | `/departments/{departmentId}/deactivate`   | `department.update`  | `403`, `404`        |
+| `POST`   | `/departments/{departmentId}/activate`     | `department.update`  | `403`, `404`        |
+
+Departments are organization-scoped groups with a name, optional description and
+`status: "active" | "inactive"`. They are independent of teams in this release:
+creating a department does not move or assign teams.
+
+There is no `DELETE`, trash or restore route. Departments stay in every list so
+historical references remain valid; take one out of use with
+`POST /departments/{departmentId}/deactivate` and bring it back with
+`POST /departments/{departmentId}/activate`. Both are idempotent and answer the
+department. Status is not writable through `PATCH`: create/update bodies that
+include `status` are `400`.
+
+### 9.6 Project human resources
+
+Every route is nested under a project and needs `Org` via header.
+
+| Method   | Path                                                            | Perm                      | Errors              |
+| -------- | --------------------------------------------------------------- | ------------------------- | ------------------- |
+| `GET`    | `/projects/{projectId}/human-resources` `?page&limit&role&status` | `human_resource.view`     | `400`, `403`, `404` |
+| `POST`   | `/projects/{projectId}/human-resources`                          | `human_resource.create`   | `400`, `403`, `404` |
+| `GET`    | `/projects/{projectId}/human-resources/{humanResourceId}`        | `human_resource.view`     | `403`, `404`        |
+| `PATCH`  | `/projects/{projectId}/human-resources/{humanResourceId}`        | `human_resource.update`   | `400`, `403`, `404` |
+| `POST`   | `/projects/{projectId}/human-resources/{humanResourceId}/deactivate` | `human_resource.update` | `403`, `404`      |
+| `POST`   | `/projects/{projectId}/human-resources/{humanResourceId}/activate`   | `human_resource.update` | `403`, `404`      |
+
+A project keeps its own people register: the same person on two projects is two
+records, each with its own allocation and rate. `role` is `human_resource` or
+`finance_manager`; `allocationPercent` is 1–100 (default 100); `hourlyRate` is
+optional, in the organization currency, and returned as a decimal string.
+`email`, `phone`, `startDate`, `endDate` and `notes` are optional.
+
+Status is `active` or `inactive` and is not writable through `PATCH`. Use
+`deactivate` when somebody leaves the project and `activate` to bring them back;
+both are idempotent. Records are never deleted, so cost and staffing history
+survives the assignment. This register is restricted to the Owner and Project
+Manager role templates by default.
+
+### 9.7 Employees
+
+All routes: `Org` required via header.
+
+| Method   | Path                                    | Perm               | Errors                     |
+| -------- | --------------------------------------- | ------------------ | -------------------------- |
+| `GET`    | `/employees` `?page&limit&status&departmentId&managerId&employmentType&search` | `employee.view`    | `400`, `403`               |
+| `POST`   | `/employees`                            | `employee.create`  | `400`, `403`, `409`        |
+| `GET`    | `/employees/{employeeId}`               | `employee.view`    | `403`, `404`               |
+| `PATCH`  | `/employees/{employeeId}`               | `employee.update`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/employees/{employeeId}/status`        | `employee.update`  | `400`, `403`, `404`        |
+
+An employee is the HR record of a person, distinct from their login account.
+`name` is required; `employeeNumber` is unique within the organization, and
+`userId` links an existing **active** organization member. `departmentId` must
+belong to the organization, and `managerId` must be another employee in it; a
+reporting cycle or self-management is `400`. Duplicate `employeeNumber` or
+`userId` is `409`.
+
+`employmentType` is `full_time | part_time | contractor | intern | temporary`.
+`status` is `active | probation | on_leave | terminated`; `terminated` is a
+lifecycle state, not a delete, and the row stays readable. Change it through
+`POST /employees/{employeeId}/status`: terminating without `terminationDate`
+uses today, while any other status clears the termination date. There is no
+delete route. `annualSalary` is sent as a number and returned as a decimal
+string to preserve precision.
+
+### 9.8 Leave
+
+Leave types require `Org` via header.
+
+| Method   | Path                                       | Perm                 | Errors                     |
+| -------- | ------------------------------------------ | -------------------- | -------------------------- |
+| `GET`    | `/leave-types` `?page&limit&status`        | `leave_type.view`    | `400`, `403`               |
+| `POST`   | `/leave-types`                             | `leave_type.create`  | `400`, `403`, `409`        |
+| `GET`    | `/leave-types/{leaveTypeId}`               | `leave_type.view`    | `403`, `404`               |
+| `PATCH`  | `/leave-types/{leaveTypeId}`               | `leave_type.update`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/leave-types/{leaveTypeId}/deactivate`    | `leave_type.update`  | `403`, `404`               |
+| `POST`   | `/leave-types/{leaveTypeId}/activate`      | `leave_type.update`  | `403`, `404`               |
+
+A leave type has a unique `name`, optional `description`, a
+`defaultEntitlementDays` allowance (0–366) and `paid`. Its lifecycle is
+`active | inactive`, changed with activate/deactivate; there is no delete route,
+so historical requests keep their type. An inactive type cannot be used on a new
+or edited request (`400`).
+
+Leave requests require `Org` via header.
+
+| Method   | Path                                       | Perm                    | Errors                     |
+| -------- | ------------------------------------------ | ----------------------- | -------------------------- |
+| `POST`   | `/leave-requests`                          | `leave_request.create`  | `400`, `403`, `404`, `409` |
+| `GET`    | `/leave-requests` `?page&limit&employeeId&leaveTypeId&status&from&to` | `leave_request.view` | `400`, `403` |
+| `GET`    | `/leave-requests/{leaveRequestId}`         | `leave_request.view`    | `403`, `404`               |
+| `PATCH`  | `/leave-requests/{leaveRequestId}`         | `leave_request.update`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/leave-requests/{leaveRequestId}/approve` | `leave_request.approve` | `400`, `403`, `404`, `409` |
+| `POST`   | `/leave-requests/{leaveRequestId}/reject`  | `leave_request.approve` | `400`, `403`, `404`, `409` |
+| `POST`   | `/leave-requests/{leaveRequestId}/cancel`  | `leave_request.cancel`  | `400`, `403`, `404`, `409` |
+| `GET`    | `/employees/{employeeId}/leave-balances` `?year` | `leave_request.view` | `400`, `403`, `404` |
+
+Create body is `{ employeeId, leaveTypeId, startDate, endDate, reason? }`.
+`days` is the inclusive day count, computed by the server. A terminated employee
+cannot request leave (`400`), `endDate` before `startDate` is `400`, and an
+overlapping pending or approved request for the same employee is `409`. Only a
+`pending` request may be edited; approve/reject apply only to `pending`; cancel
+accepts `pending` or `approved` and gives the days back. `from`/`to` filter by
+range intersection. Balances default to the current year (allowed 2000–2100) and
+return `entitlementDays`, `approvedDays`, `pendingDays` and `remainingDays` per
+leave type.
+
+### 9.9 Performance reviews
+
+All routes: `Org` required via header.
+
+| Method   | Path                                      | Perm                         | Errors                     |
+| -------- | ----------------------------------------- | ---------------------------- | -------------------------- |
+| `POST`   | `/performance-reviews`                    | `performance_review.create`  | `400`, `403`, `404`        |
+| `GET`    | `/performance-reviews` `?page&limit&employeeId&reviewerId&status&from&to` | `performance_review.view` | `400`, `403` |
+| `GET`    | `/performance-reviews/{reviewId}`         | `performance_review.view`    | `403`, `404`               |
+| `PATCH`  | `/performance-reviews/{reviewId}`         | `performance_review.update`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/performance-reviews/{reviewId}/submit`  | `performance_review.update`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/performance-reviews/{reviewId}/acknowledge` | `performance_review.update` | `403`, `404`, `409`     |
+
+Create body needs `employeeId`, `periodStart`, `periodEnd` and accepts
+`reviewerId` (defaults to the caller), `reviewDate`, `rating` (1–5), `summary`,
+`strengths`, `improvements` and `goals`. The reviewer must be an active member of
+the organization and cannot be the employee themselves (`400`); `periodEnd`
+before `periodStart` is `400`. A review moves `draft → submitted → acknowledged`:
+only a draft can be edited or submitted, submitting requires a rating, and only
+a submitted review can be acknowledged. Out-of-order transitions are `409`.
+There is no delete route.
+
+### 9.10 Clients, projects, badges
 
 | Resource | List                           | Create                            | Read                                       | Update                   | Delete                    |
 | -------- | ------------------------------ | --------------------------------- | ------------------------------------------ | ------------------------ | ------------------------- |
@@ -1021,7 +1163,7 @@ before deleting a client that still has projects. `DELETE /projects/{projectId}`
 answers `200 { message, deleted }`: `deleted` counts the project plus every task,
 subtask and time entry that went with it.
 
-### 9.6 Tasks and subtasks
+### 9.11 Tasks and subtasks
 
 | Method   | Path                                                            | Perm                                      | Errors              |
 | -------- | --------------------------------------------------------------- | ----------------------------------------- | ------------------- |
@@ -1054,7 +1196,7 @@ recoverable, that confirmation is about the size of the delete, not about
 irreversibility — say what will disappear, then let them undo it later. See
 [8.4](#84-deleting-trash-and-restore).
 
-### 9.7 Time entries and timers
+### 9.12 Time entries and timers
 
 | Method   | Path                                                   | Perm                     | Errors                     |
 | -------- | ------------------------------------------------------ | ------------------------ | -------------------------- |
@@ -1088,7 +1230,7 @@ irreversibility — say what will disappear, then let them undo it later. See
   deleted — restoring time into a deleted subtask is `409`. A running timer
   deleted mid-flight is in the trash like any other entry.
 
-### 9.8 Time complexity
+### 9.13 Time complexity
 
 | Method   | Path                                                          | Perm                     | Errors                     |
 | -------- | ------------------------------------------------------------- | ------------------------ | -------------------------- |
@@ -1110,7 +1252,7 @@ per task/subtask combination — a second one is `409`; archiving the first
 `variance` is `within | under | over`. A `null` `actualSeconds` means no time was
 logged against that subtask.
 
-### 9.9 Dashboard
+### 9.14 Dashboard
 
 | Method | Path                  | Perm                   |
 | ------ | --------------------- | ---------------------- |
@@ -1135,162 +1277,122 @@ Shared query parameters on `overview`, `projects` and `clients`:
 
 `/dashboard/overdue` accepts only `from` and `to`. Invalid dates are `400`.
 
-### 9.10 Chat
+### 9.15 Milestones
 
-| Method   | Path                                                       | Perm         | Errors                     |
-| -------- | ---------------------------------------------------------- | ------------ | -------------------------- |
-| `GET`    | `/chat/channels` `?page&limit&type`                        | `chat.view`  | `403`                      |
-| `POST`   | `/chat/channels`                                           | `chat.create`| `400`, `403`               |
-| `GET`    | `/chat/channels/scope` `?type&projectId&taskId&subtaskId`  | `chat.view`  | `400`, `403`, `404`        |
-| `GET`    | `/chat/channels/{channelId}`                               | `chat.view`  | `403`, `404`               |
-| `GET`    | `/chat/channels/{channelId}/messages` `?page&limit`        | `chat.view`  | `403`, `404`               |
-| `POST`   | `/chat/channels/{channelId}/messages`                      | `chat.create`| `400`, `403`, `404`        |
-| `PATCH`  | `/chat/messages/{messageId}`                               | `chat.create`| `400`, `403`, `404`        |
-| `DELETE` | `/chat/messages/{messageId}`                               | `chat.create`| `403`, `404`               |
-| `POST`   | `/chat/channels/{channelId}/read`                          | `chat.view`  | `403`, `404`               |
+All routes: `Org` required via header.
 
-Bodies: messages take `{ body }` (1–4000 characters) for both send and edit;
-`POST /chat/channels` takes `{ participantIds, name? }`; `POST .../read` takes an
-optional `{ upToMessageId }`. Entries returned by the list and resolve endpoints
-are `{ channel, lastMessage, unreadCount, participantCount }`. The single-channel
-route answers with the channel's own fields plus `participants` — `[{ id, name }]`
-for a direct room, `null` for a scoped one. Messages everywhere (list, send,
-edit, socket events) carry `senderId` alongside the `sender` summary, and
-`channel.lastMessageAt` moves with every message.
+| Method   | Path                                    | Perm                | Errors              |
+| -------- | --------------------------------------- | ------------------- | ------------------- |
+| `GET`    | `/milestones` `?page&limit&status&projectId` | `milestone.view`    | `400`, `403`        |
+| `POST`   | `/milestones`                           | `milestone.create`  | `400`, `403`, `404` |
+| `GET`    | `/milestones/trash`                     | `milestone.view`    | `403`               |
+| `POST`   | `/milestones/{milestoneId}/restore`     | `milestone.update`  | `403`, `404`, `409` |
+| `GET`    | `/milestones/{milestoneId}`             | `milestone.view`    | `403`, `404`        |
+| `PATCH`  | `/milestones/{milestoneId}`             | `milestone.update`  | `400`, `403`, `404` |
+| `DELETE` | `/milestones/{milestoneId}`             | `milestone.delete`  | `403`, `404`        |
 
-**Rooms.** Four scopes, plus direct messages:
+`status` is `planned | in_progress | completed | cancelled`; `dueDate` is a
+`YYYY-MM-DD` date. Creating a milestone needs an existing `projectId` in the
+organization (`404` otherwise). Delete is soft and **detaches tasks instead of
+taking them**: the `200` reports `{ message, deleted }`, where `deleted` is the
+milestone plus every task detached from it. Use `GET /milestones/trash` and
+`POST /milestones/{milestoneId}/restore` to recover it; restoring a live
+milestone is `409`.
 
-- **Organization** — one `General` room per organization, created on the first
-  `GET /chat/channels`.
-- **Project / task / subtask** — created on demand by `GET /chat/channels/scope`.
-  Call it when the user opens that record's conversation; it answers `200` with
-  the same entry shape (creating the room if this is the first ask) and the
-  `channel.id` every other call needs. Send exactly the id belonging to `type`:
-  a missing or additional scope id is `400`, an unknown record (or one outside
-  the current organization) is `404`.
-- **Direct** — `POST /chat/channels` with the **full** member set including
-  yourself, 2–8 members. Reopening the same set returns the same room (`201`
-  again), never a second one.
+### 9.16 Activity
 
-**Visibility.** Any member with `chat.view` can read any non-direct room and see
-it in their list. Direct rooms answer `404` — never `403` — to anyone outside
-them, so their ids cannot be probed.
+Read-only organization audit trail, newest first. All routes require `Org` via
+header and answer `200`, `401` and `403`.
 
-**Edit and delete.** Editing is sender-only (`chat.manage` does not let a
-moderator rewrite somebody else's words; the response carries `editedAt`).
-Deletion is your own message, or any message with `chat.manage`. Deleted
-messages are soft-deleted: dropped from every list, announced to the room.
+| Method | Path                                    | Perm             |
+| ------ | --------------------------------------- | ---------------- |
+| `GET`  | `/activity` `?page&limit`               | `task.view`      |
+| `GET`  | `/activity/task/{taskId}` `?page&limit` | `task.view`      |
+| `GET`  | `/activity/project/{projectId}` `?page&limit` | `project.view` |
+| `GET`  | `/activity/entity/{entityType}/{entityId}` `?page&limit` | `task.view` |
 
-**Read markers.** `unreadCount` is yours alone — messages after your marker,
-excluding your own. `POST .../read` moves your marker to now (or to a specific
-message with `upToMessageId`) and emits `channel:read` to the room, so other
-tabs open on the same account refresh their badges.
+An `ActivityResponseDto` carries `id`, `entityType`, `entityId`, `action`,
+`title`, `body | null`, `projectId | null`, `taskId | null`,
+`subtaskId | null`, `diff | null`, `metadata | null`, `actor | null` and
+`createdAt`. Events are written inside the transaction that performs the
+mutation; there is no create/update/delete route here.
 
-#### Realtime (Socket.IO)
+### 9.17 Comments and attachments
 
-Messages are only ever **written** over REST — the socket carries them outward,
-plus the ephemeral extras. The namespace is `/chat`:
+Comments require `Org` via header.
 
-```ts
-import { io } from 'socket.io-client';
+| Method   | Path                               | Perm           | Errors              |
+| -------- | ---------------------------------- | -------------- | ------------------- |
+| `GET`    | `/comments/task/{taskId}` `?page&limit` | `task.view` | `403`            |
+| `GET`    | `/comments/subtask/{subtaskId}` `?page&limit` | `task.view` | `403`      |
+| `POST`   | `/comments`                        | `task.update`  | `400`, `403`, `404` |
+| `PATCH`  | `/comments/{commentId}`            | `task.update`  | `400`, `403`, `404` |
+| `DELETE` | `/comments/{commentId}`            | `task.update`  | `403`, `404`        |
 
-// Same-origin: io('/chat', { auth: { token, organizationId } })
-const socket = io(`${API_URL}/chat`, {
-  auth: { token: accessToken, organizationId },
-});
-```
+Create body is `{ content, taskId? , subtaskId? }` with exactly one target;
+missing both is `400`, an unknown target is `404`. Content is non-empty text;
+`@handle` mentions notify matching organization members. Only the author may
+edit or delete a comment (`403` otherwise); editing sets `editedAt`. Comments
+are soft-deleted and omitted from every list, with no trash/restore route.
 
-The handshake needs both fields: the token proves who you are, and
-`organizationId` (a uuid) is checked for live membership plus `chat.view`. On
-failure the server emits `chat:error` with `{ message }` and disconnects. Once
-connected the server joins your sockets to `user:`-rooms itself (read receipts
-for your own account arrive there); every channel room you actually want to
-hear must be joined explicitly — after the resolve or list call that gave you
-its `channelId`:
+Attachments require `Org` via header.
 
-```ts
-socket.emit('channel:join', { channelId }, ({ ok, error }) => {
-  if (!ok) console.warn('join refused:', error);
-});
-```
+| Method | Path                                   | Perm          | Errors              |
+| ------ | -------------------------------------- | ------------- | ------------------- |
+| `POST` | `/attachments/upload`                  | `task.update` | `400`, `403`, `404` |
+| `GET`  | `/attachments/task/{taskId}`           | `task.view`   | `403`               |
+| `GET`  | `/attachments/{attachmentId}/download` | `task.view`   | `403`, `404`        |
 
-Client → server (each answered with an ack):
+Upload is `multipart/form-data` with the file in `file` and exactly one of
+`taskId`, `subtaskId` or `commentId` in the query string. Missing file or target
+is `400`; an unknown target is `404`. The response includes `url`
+(`/api/v1/attachments/{id}/download`), but the download still needs the bearer
+token and organization header — do not treat it as a public link. Listing is
+newest first; deleted attachments are omitted.
 
-| Event           | Payload                          | Ack                        |
-| --------------- | -------------------------------- | -------------------------- |
-| `channel:join`  | `{ channelId }`                  | `{ ok, error? }` — access re-checked server-side |
-| `channel:leave` | `{ channelId }`                  | `{ ok }`                   |
-| `typing`        | `{ channelId, isTyping? }`       | `{ ok, error? }` — relayed to the room, never persisted |
+### 9.18 Chat
 
-Server → client:
+All routes require `Org` via header. Direct channels narrow access to their
+participants; scoped rooms follow their project/task/subtask.
 
-| Event            | Payload                                                      | What to do                          |
-| ---------------- | ------------------------------------------------------------ | ----------------------------------- |
-| `message:created`| `{ id, channelId, senderId, sender: { id, name }, body, editedAt, createdAt }` | Append (or refetch) the message |
-| `message:updated`| same shape, `editedAt` set                                   | Replace the row                     |
-| `message:deleted`| `{ id, channelId }`                                          | Drop the row (it is gone from REST too) |
-| `channel:read`   | `{ channelId, userId, lastReadAt }`                          | Someone's badge moved — refresh if it is yours |
-| `typing`         | `{ channelId, userId, isTyping }`                            | Show/clear the typing hint          |
-| `chat:error`     | `{ message }`                                                | The server disconnects right after  |
+| Method   | Path                                      | Perm           | Errors              |
+| -------- | ----------------------------------------- | -------------- | ------------------- |
+| `GET`    | `/chat/channels` `?page&limit&type`       | `chat.view`    | `403`               |
+| `POST`   | `/chat/channels`                          | `chat.create`  | `400`, `403`        |
+| `GET`    | `/chat/channels/scope` `?type&projectId&taskId&subtaskId` | `chat.view` | `400`, `403`, `404` |
+| `GET`    | `/chat/channels/{channelId}`              | `chat.view`    | `403`, `404`        |
+| `GET`    | `/chat/channels/{channelId}/messages` `?page&limit` | `chat.view` | `403`, `404` |
+| `POST`   | `/chat/channels/{channelId}/messages`     | `chat.create`  | `400`, `403`, `404` |
+| `PATCH`  | `/chat/messages/{messageId}`              | `chat.create`  | `400`, `403`, `404` |
+| `DELETE` | `/chat/messages/{messageId}`              | `chat.create`  | `403`, `404`        |
+| `POST`   | `/chat/channels/{channelId}/read`         | `chat.view`    | `403`, `404`        |
 
-Join and typing are re-checked against your membership on every event, and a
-revoked member stops receiving messages on their next reconnect — the REST
-write path is the same guard chain as everywhere else in this API.
-
-### 9.11 Activity
-
-Four read-only projections over the organization's activity trail. Every one
-needs `analytics.view` (held by all default role templates, owner included), a
-valid token and organization context.
-
-| Method | Path                     | Perm              | Errors       |
-| ------ | ------------------------ | ----------------- | ------------ |
-| `GET`  | `/activity/timeline`     | `analytics.view`  | `400`, `403` |
-| `GET`  | `/activity/leaderboard`  | `analytics.view`  | `400`, `403` |
-| `GET`  | `/activity/breakdown`    | `analytics.view`  | `400`, `403` |
-| `GET`  | `/activity/events`       | `analytics.view`  | `400`, `403` |
-
-Shared query parameters — the same range contract as the dashboard:
-
-| Param        | Type                                                        | Default                 |
-| ------------ | ----------------------------------------------------------- | ----------------------- |
-| `from`       | ISO date                                                    | 30 days ago (inclusive) |
-| `to`         | ISO date                                                    | now (inclusive)         |
-| `projectId`  | uuid                                                        | — (whole organization)  |
-| `entityType` | one of the tracked entity types (see below)                 | — (all)                 |
-| `action`     | `created \| updated \| deleted \| restored \| accepted`     | — (all)                 |
-| `actorId`    | uuid                                                        | — (everyone)            |
-| `groupBy`    | `day \| week` — **timeline only**                           | `day`                   |
-| `limit`      | 1–100 — **leaderboard only**                                | `10`                    |
-| `page`, `limit` | pagination — **events only**                             | `1`, `20`               |
-
-`entityType` is one of `project`, `task`, `subtask`, `milestone`, `team`,
-`client`, `badge`, `time_entry`, `chat_message`, `chat_channel`, `invitation`,
-`role`, `member`. A malformed date, a `from` after `to`, a span over 366 days,
-or an unknown `entityType`/`action` is `400`. The range defaults are identical
-to the dashboard's, so the two surfaces agree on "the default range".
-
-Response shapes:
-
-- **`/activity/timeline`** — `{ from, to, groupBy, buckets: [{ bucket, count }] }`,
-  oldest bucket first.
-- **`/activity/leaderboard`** — `{ from, to, entries: [{ actorId, name, count }] }`,
-  most events first, ties by name. An entry whose actor was removed reports the
-  raw id with a `null` name.
-- **`/activity/breakdown`** — `{ from, to, total, items: [{ entityType, action, count }] }`,
-  most frequent first.
-- **`/activity/events`** — a page `{ items, total, page, limit, totalPages }`,
-  newest first. Each item is
-  `{ id, entityType, action, entityId, projectId | null, actor | null, metadata | null, createdAt }`
-  where `actor` is `{ id, name | null }`. `actor` is `null` only for events with
-  no actor at all (system-level), and `name` is `null` when the user was removed.
-  `metadata` carries non-essential extras (a name snapshot, the fields an update
-  touched) — never render a line that depends on it.
-
-Note that `projectId` is only filled where a project was cheaply in hand at
-write time: project, task, subtask and milestone events carry it; team, client,
-member, role, invitation and most chat events are organization-level and are
-**excluded** by a `projectId` filter.
+- `GET /chat/channels` returns the organization room (created on first call),
+  scoped rooms you can see and your direct conversations, busiest first. Each
+  entry has `channel`, `lastMessage | null`, `unreadCount` and
+  `participantCount | null`.
+- `POST /chat/channels` opens or returns a direct conversation. `participantIds`
+  is the **full** member set including yourself, 2–8 active members; missing
+  yourself or naming a non-member is `400`.
+- `GET /chat/channels/scope` resolves the room for `type` =
+  `organization | project | task | subtask`, creating it on demand. The scope id
+  must match the type (`400`), and a missing or out-of-organization scope is
+  `404`.
+- Direct channels answer `404` to non-participants; scoped rooms are visible to
+  organization members with `chat.view`. Channel detail includes `participants`
+  for direct rooms and `null` for scoped rooms.
+- Messages are written only through REST. `POST` broadcasts `message:created`;
+  `PATCH` broadcasts `message:updated` and sets `editedAt`; `DELETE` soft-deletes
+  and broadcasts `message:deleted`. Sender-only for edit; delete is sender-only
+  unless the caller holds `chat.manage`.
+- `POST /chat/channels/{channelId}/read` moves your read marker to now, or to
+  `upToMessageId` in the same channel (`404` if not in that channel).
+- Socket.IO lives at namespace `/chat`. Pass the bearer token and
+  `auth.organizationId` in the handshake. After connecting, emit
+  `channel:join` / `channel:leave` with `{ channelId }` and `typing` with
+  `{ channelId, isTyping }`. Server events include `message:created`,
+  `message:updated`, `message:deleted`, `channel:read`, `typing` and
+  `chat:error`; the socket never accepts a message body for persistence.
 
 ---
 
@@ -1303,11 +1405,21 @@ member, role, invitation and most chat events are organization-level and are
 | `user.status`                                         | `active`, `inactive`, `suspended` (only the first two via `PATCH /auth/profile`) |
 | `subscription.status`                                 | `trial`, `active`, `cancelled`, `suspended`                                      |
 | `organization.status`, `team.status`, `client.status` | `active`, `inactive`, `archived`                                                 |
+| `department.status`                                   | `active`, `inactive`                                                             |
+| `employee.status`                                     | `active`, `probation`, `on_leave`, `terminated`                                  |
+| `employee.employmentType`                             | `full_time`, `part_time`, `contractor`, `intern`, `temporary`                    |
+| `leaveType.status`                                    | `active`, `inactive`                                                             |
+| `leaveRequest.status`                                 | `pending`, `approved`, `rejected`, `cancelled`                                   |
+| `performanceReview.status`                            | `draft`, `submitted`, `acknowledged`                                             |
+| `humanResource.role`                                  | `human_resource`, `finance_manager`                                              |
+| `humanResource.status`                                | `active`, `inactive`                                                             |
 | `teamMember.status`                                   | `pending`, `active`, `inactive`, `removed`                                       |
 | `teamMember.role`                                     | `lead`, `member`, `observer`                                                     |
 | `member.status`                                       | `active`, `deactivated`                                                          |
 | `invitation.status`                                   | `pending`, `accepted`, `revoked`, `expired` (the last is reported, never stored) |
 | `project.status`                                      | `planned`, `active`, `on_hold`, `completed`, `cancelled`                         |
+| `milestone.status`                                    | `planned`, `in_progress`, `completed`, `cancelled`                               |
+| `chat.channel.type`                                   | `organization`, `project`, `task`, `subtask`, `direct`                           |
 | `task.status`                                         | `todo`, `in_progress`, `in_review`, `done`, `cancelled`                          |
 | `task.priority`, `timeComplexity.name`                | `low`, `medium`, `high`, `critical`                                              |
 | `subtask.status`                                      | `todo`, `in_progress`, `done`, `cancelled`                                       |
@@ -1351,6 +1463,38 @@ strings, not objects).
 **Team**: `id`, `organizationId` ro, `name`, `description | null`, `status`,
 `createdAt` ro.
 
+**Department**: `id`, `organizationId` ro, `name`, `description | null`,
+`status`, `createdAt`/`updatedAt` ro.
+
+**HumanResource**: `id`, `organizationId` ro, `projectId` ro, `name`,
+`email | null`, `phone | null`, `role`, `allocationPercent`,
+`hourlyRate | null` (decimal string), `startDate | null`, `endDate | null`,
+`notes | null`, `status`, `createdAt`/`updatedAt` ro.
+
+**Employee**: `id`, `organizationId` ro, `userId | null`, `employeeNumber | null`,
+`name`, `email | null`, `personalEmail | null`, `phone | null`,
+`departmentId | null`, `departmentName | null`, `managerId | null`,
+`managerName | null`, `jobTitle | null`, `employmentType`, `status`,
+`hireDate | null`, `terminationDate | null`, `dateOfBirth | null`,
+`address | null`, `emergencyContactName | null`, `emergencyContactPhone | null`,
+`emergencyContactRelationship | null`, `annualSalary | null` (decimal string),
+`notes | null`, `createdAt`/`updatedAt` ro.
+
+**LeaveType**: `id`, `organizationId` ro, `name`, `description | null`,
+`defaultEntitlementDays`, `paid`, `status`, `createdAt`/`updatedAt` ro.
+
+**LeaveRequest**: `id`, `organizationId` ro, `employeeId`, `employeeName | null`,
+`leaveTypeId`, `leaveTypeName | null`, `startDate`, `endDate`, `days`,
+`reason | null`, `status`, `approverId | null`, `approverName | null`,
+`decidedAt | null`, `decisionNote | null`, `cancelledAt | null`,
+`createdAt`/`updatedAt` ro.
+
+**PerformanceReview**: `id`, `organizationId` ro, `employeeId`,
+`employeeName | null`, `reviewerId`, `reviewerName | null`, `periodStart`,
+`periodEnd`, `reviewDate | null`, `rating | null`, `status`, `summary | null`,
+`strengths | null`, `improvements | null`, `goals | null`, `submittedAt | null`,
+`acknowledgedAt | null`, `createdAt`/`updatedAt` ro.
+
 **TeamMember**: `id`, `teamId`, `userId`, `user | null` (embedded user),
 `role`, `status`, `joinedAt` ro. Note both `userId` and `user` are returned.
 
@@ -1377,6 +1521,28 @@ Create body: `{ title, description?, assignedTo?, status?, dueDate? }`.
 
 **TimeComplexity**: `id`, `taskId`, `subtaskId | null`, `name`, `status`,
 `minDuration`, `maxDuration`, `minDurationSeconds` ro, `maxDurationSeconds` ro.
+
+**Milestone**: `id`, `projectId`, `name`, `description | null`, `status`,
+`dueDate | null`, `createdAt`/`updatedAt` ro.
+
+**Comment**: `id`, `organizationId` ro, `projectId | null`, `taskId | null`,
+`subtaskId | null`, `author | null` (embedded `{ id, name, email }`),
+`authorId`, `content`, `editedAt | null`, `attachments[]`, `createdAt`/`updatedAt` ro.
+
+**Attachment**: `id`, `originalName`, `mimeType`, `size`, `kind`,
+`taskId | null`, `subtaskId | null`, `commentId | null`, `uploaderId`,
+`createdAt` ro, `url` ro (still requires auth to download).
+
+**Activity**: `id`, `entityType`, `entityId`, `action`, `title`, `body | null`,
+`projectId | null`, `taskId | null`, `subtaskId | null`, `diff | null`,
+`metadata | null`, `actor | null`, `createdAt` ro.
+
+**ChatChannel**: `id`, `organizationId`, `type`, `projectId | null`,
+`taskId | null`, `subtaskId | null`, `name | null`, `lastMessageAt | null`,
+`createdAt`/`updatedAt` ro, `participants | null` (direct rooms only).
+
+**ChatMessage**: `id`, `channelId`, `senderId`, `sender` (embedded
+`{ id, name }`), `body`, `editedAt | null`, `createdAt` ro.
 
 ### 10.3 Dashboard payloads
 
@@ -1457,12 +1623,15 @@ discovering them in QA:
 5. **No filtering or sorting on most lists.** Only the filters listed per route
    exist; there is no `sort`, `search`, `orderBy` or date-range parameter on list
    endpoints.
-6. **No soft deletes.** Deletes are hard, and the only "archived" concept is the
-   `status` enum on organizations, teams, clients and time-complexity estimates —
-   plus `member.status`, which suspends a membership instead of deleting it
-   (§9.3). Nothing a delete removed is recoverable from the UI. Chat messages
-   are tombstoned server-side rather than destroyed, but they resurface
-   nowhere — no trash, no restore — so treat them as final as well.
+6. **Soft delete coverage is not uniform.** Clients, projects, tasks, subtasks,
+   milestones, time entries, badges and teams have trash/restore (§8.4);
+   comments and chat messages are soft-deleted but have no trash/restore route
+   (§9.17, §9.18). Time-complexity records and organization members are deleted
+   for good. Departments and project human resources have no delete route:
+   `active`/`inactive` is their lifecycle (§9.5, §9.6). The `status` enum on
+   organizations, teams and clients, plus time-complexity estimates, is an
+   archive flag, not a delete. `member.status` suspends a membership instead of
+   removing it (§9.3).
 7. **`?userId` on time entries is ignored without `view_all`** — a silent
    filter, not a `403`.
 8. **Swagger docs, not this file, are the schema source of truth.** If the two
