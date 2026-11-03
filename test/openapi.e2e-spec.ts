@@ -241,6 +241,19 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['GET', '/notifications/unread-count', ['200']],
   ['POST', '/notifications/read-all', ['200']],
   ['POST', '/notifications/{notificationId}/read', ['200']],
+  // Chat. The org channel is made on first call, direct channels are opened
+  // with `POST /chat/channels`, and every write goes through REST even though
+  // the results are pushed to sockets -- messages can only be created, edited
+  // and deleted here, the gateway only relays.
+  ['GET', '/chat/channels', ['200']],
+  ['POST', '/chat/channels', ['201']],
+  ['GET', '/chat/channels/scope', ['200']],
+  ['GET', '/chat/channels/{channelId}', ['200']],
+  ['GET', '/chat/channels/{channelId}/messages', ['200']],
+  ['POST', '/chat/channels/{channelId}/messages', ['201']],
+  ['PATCH', '/chat/messages/{messageId}', ['200']],
+  ['DELETE', '/chat/messages/{messageId}', ['200']],
+  ['POST', '/chat/channels/{channelId}/read', ['200']],
   ['POST', '/tasks/{taskId}/subtasks', ['201']],
   ['GET', '/tasks/{taskId}/subtasks', ['200']],
   ['GET', '/tasks/{taskId}/subtasks/{subtaskId}', ['200']],
@@ -321,6 +334,12 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['PATCH', '/chat/messages/{messageId}', ['200']],
   ['DELETE', '/chat/messages/{messageId}', ['200']],
   ['POST', '/chat/channels/{channelId}/read', ['200']],
+  // Activity analysis: four read-only projections over the same event trail,
+  // all organization-scoped and range-filtered like the dashboard.
+  ['GET', '/activity/timeline', ['200']],
+  ['GET', '/activity/leaderboard', ['200']],
+  ['GET', '/activity/breakdown', ['200']],
+  ['GET', '/activity/events', ['200']],
 ];
 
 /** Operations reachable without a bearer token. */

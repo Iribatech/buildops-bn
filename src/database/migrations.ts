@@ -14,12 +14,14 @@ import { Notifications1700000000011 } from './migrations/1700000000011-notificat
 import { Milestones1700000000012 } from './migrations/1700000000012-milestones.js';
 import { RoleTemplateKeys1700000000013 } from './migrations/1700000000013-role-template-keys.js';
 import { NotificationEmails1700000000014 } from './migrations/1700000000014-notification-emails.js';
-import { Departments1700000000015 } from './migrations/1700000000015-departments.js';
-import { ProjectHumanResources1700000000016 } from './migrations/1700000000016-project-human-resources.js';
-import { Activities1700000000017 } from './migrations/1700000000017-activities.js';
-import { CommentsAttachments1700000000018 } from './migrations/1700000000018-comments-attachments.js';
-import { HrManagement1700000000019 } from './migrations/1700000000019-hr-management.js';
-import { Chat1700000000020 } from './migrations/1700000000020-chat.js';
+import { Chat1700000000015 } from './migrations/1700000000015-chat.js';
+import { Activity1700000000016 } from './migrations/1700000000016-activity.js';
+import { Departments1700000000017 } from './migrations/1700000000017-departments.js';
+import { ProjectHumanResources1700000000018 } from './migrations/1700000000018-project-human-resources.js';
+import { Activities1700000000019 } from './migrations/1700000000019-activities.js';
+import { CommentsAttachments1700000000020 } from './migrations/1700000000020-comments-attachments.js';
+import { HrManagement1700000000021 } from './migrations/1700000000021-hr-management.js';
+import { Chat1700000000022 } from './migrations/1700000000022-chat.js';
 
 /**
  * The ordered migration list. TypeORM records what has run in the `migrations`
@@ -43,10 +45,12 @@ export const MIGRATIONS: (new () => MigrationInterface)[] = [
   Milestones1700000000012,
   RoleTemplateKeys1700000000013,
   NotificationEmails1700000000014,
-  Departments1700000000015,
-  ProjectHumanResources1700000000016,
-  Activities1700000000017,
-  CommentsAttachments1700000000018,
-  HrManagement1700000000019,
-  Chat1700000000020,
+  Chat1700000000015,
+  Activity1700000000016,
+  Departments1700000000017,
+  ProjectHumanResources1700000000018,
+  Activities1700000000019,
+  CommentsAttachments1700000000020,
+  HrManagement1700000000021,
+  Chat1700000000022,
 ];
