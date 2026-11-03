@@ -27,6 +27,8 @@ export const ACTIVITY_ENTITY_TYPES = [
   'leave_type',
   'leave_request',
   'performance_review',
+  'chat_channel',
+  'chat_message',
 ] as const;
 
 export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[number];

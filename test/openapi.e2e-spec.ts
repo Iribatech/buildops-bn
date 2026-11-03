@@ -248,6 +248,29 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['DELETE', '/tasks/{taskId}/subtasks/{subtaskId}', ['200']],
   ['GET', '/tasks/{taskId}/subtasks/trash', ['200']],
   ['POST', '/tasks/{taskId}/subtasks/{subtaskId}/restore', ['201']],
+  // Milestones group a project's deliveries under target dates.
+  ['POST', '/milestones', ['201']],
+  ['GET', '/milestones', ['200']],
+  ['GET', '/milestones/trash', ['200']],
+  ['POST', '/milestones/{milestoneId}/restore', ['201']],
+  ['GET', '/milestones/{milestoneId}', ['200']],
+  ['PATCH', '/milestones/{milestoneId}', ['200']],
+  ['DELETE', '/milestones/{milestoneId}', ['200']],
+  // The activity trail, read-only and filterable by task, project or entity.
+  ['GET', '/activity', ['200']],
+  ['GET', '/activity/task/{taskId}', ['200']],
+  ['GET', '/activity/project/{projectId}', ['200']],
+  ['GET', '/activity/entity/{entityType}/{entityId}', ['200']],
+  // Comments, with mentions that notify the people named.
+  ['GET', '/comments/task/{taskId}', ['200']],
+  ['GET', '/comments/subtask/{subtaskId}', ['200']],
+  ['POST', '/comments', ['201']],
+  ['PATCH', '/comments/{commentId}', ['200']],
+  ['DELETE', '/comments/{commentId}', ['200']],
+  // Attachments are downloaded through the API, never from a public URL.
+  ['POST', '/attachments/upload', ['201']],
+  ['GET', '/attachments/task/{taskId}', ['200']],
+  ['GET', '/attachments/{attachmentId}/download', ['200']],
   // Time entries, including the running-timer endpoints.
   ['POST', '/time-entries', ['201']],
   ['GET', '/time-entries', ['200']],
@@ -287,6 +310,17 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['GET', '/dashboard/projects', ['200']],
   ['GET', '/dashboard/clients', ['200']],
   ['GET', '/dashboard/overdue', ['200']],
+  // Chat: rooms are ensured lazily per scope; messages are written only through
+  // REST and relayed to open sockets.
+  ['GET', '/chat/channels', ['200']],
+  ['POST', '/chat/channels', ['201']],
+  ['GET', '/chat/channels/scope', ['200']],
+  ['GET', '/chat/channels/{channelId}', ['200']],
+  ['GET', '/chat/channels/{channelId}/messages', ['200']],
+  ['POST', '/chat/channels/{channelId}/messages', ['201']],
+  ['PATCH', '/chat/messages/{messageId}', ['200']],
+  ['DELETE', '/chat/messages/{messageId}', ['200']],
+  ['POST', '/chat/channels/{channelId}/read', ['200']],
 ];
 
 /** Operations reachable without a bearer token. */

@@ -10,7 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiExcludeController, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PaginatedSchema } from '../common/dto/paginated-response.dto.js';
 import { PERMISSIONS } from '../common/permissions.js';
 import {
@@ -39,19 +39,9 @@ import {
 
 const MilestonePageDto = PaginatedSchema(MilestoneResponseDto, 'MilestonePage');
 
-/**
- * Milestones group a project's deliveries under target dates.
- *
- * Deliberately excluded from the OpenAPI document for now (`@ApiExcludeController`):
- * the whole document is published incrementally, one module at a time, so a new
- * module starts hidden from the committed contract. To publish it, drop this
- * decorator, add its tag to `TAGS` in `src/swagger.setup.ts`, add its routes to
- * `DOCUMENTED_OPERATIONS` in `test/openapi.e2e-spec.ts` and regenerate
- * `docs/openapi.json` with `pnpm run docs:openapi`.
- */
+/** Milestones group a project's deliveries under target dates. */
 @ApiRateLimited()
 @ApiTags('milestones')
-@ApiExcludeController()
 @Protected()
 @Controller('milestones')
 export class MilestoneController {

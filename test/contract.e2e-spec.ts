@@ -6307,6 +6307,875 @@ describe('published contract vs runtime (e2e)', () => {
     });
   });
 
+  describe('milestones, activity, comments and attachments', () => {
+    let projectId = '';
+    let taskId = '';
+    let subtaskId = '';
+    let milestoneId = '';
+    let attachmentId = '';
+
+    const missingId = '00000000-0000-4000-8000-000000000000';
+
+    it('creates the project, task and subtask these routes hang off', async () => {
+      const project = await probe(
+        'post',
+        '/projects',
+        (req) => asOwner(req).send({ name: 'Collaboration surface' }),
+        '201',
+      );
+      projectId = project.body.id;
+
+      const task = await probe(
+        'post',
+        '/tasks',
+        (req) =>
+          asOwner(req).send({
+            title: 'Discuss the release',
+            projectId,
+          }),
+        '201',
+      );
+      taskId = task.body.id;
+
+      const subtask = await probe(
+        'post',
+        `/tasks/${taskId}/subtasks`,
+        (req) => asOwner(req).send({ title: 'Reply in the thread' }),
+        '201',
+      );
+      subtaskId = subtask.body.id;
+    });
+
+    it('POST /milestones returns 400, 401, 403, 404 and 201', async () => {
+      await probe(
+        'post',
+        '/milestones',
+        (req) => req.send({ projectId, name: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/milestones',
+        (req) => asOutsider(req).send({ projectId, name: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/milestones',
+        (req) => asOwner(req).send({ name: 'No project' }),
+        '400',
+        'missing project',
+      );
+      await probe(
+        'post',
+        '/milestones',
+        (req) =>
+          asOwner(req).send({ projectId: missingId, name: 'Ghost' }),
+        '404',
+        'unknown project',
+      );
+
+      const created = await probe(
+        'post',
+        '/milestones',
+        (req) =>
+          asOwner(req).send({
+            projectId,
+            name: 'Public beta',
+            dueDate: '2026-12-01',
+          }),
+        '201',
+      );
+      milestoneId = created.body.id;
+    });
+
+    it('GET /milestones returns 200, 400, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/milestones',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.items.map((item: { id: string }) => item.id)).toContain(
+        milestoneId,
+      );
+
+      await probe(
+        'get',
+        '/milestones',
+        (req) => asOwner(req).query({ status: 'nope' }),
+        '400',
+        'unknown status',
+      );
+      await probe('get', '/milestones', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/milestones',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /milestones/{milestoneId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/milestones/${milestoneId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.id).toBe(milestoneId);
+
+      await probe(
+        'get',
+        `/milestones/${milestoneId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/milestones/${milestoneId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/milestones/${missingId}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown milestone',
+      );
+    });
+
+    it('PATCH /milestones/{milestoneId} returns 200, 400, 401, 403 and 404', async () => {
+      const updated = await probe(
+        'patch',
+        `/milestones/${milestoneId}`,
+        (req) => asOwner(req).send({ name: 'Public beta 2' }),
+        '200',
+      );
+      expect(updated.body.name).toBe('Public beta 2');
+
+      await probe(
+        'patch',
+        `/milestones/${milestoneId}`,
+        (req) => asOwner(req).send({ status: 'nope' }),
+        '400',
+        'unknown status',
+      );
+      await probe(
+        'patch',
+        `/milestones/${milestoneId}`,
+        (req) => req.send({ name: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/milestones/${milestoneId}`,
+        (req) => asOutsider(req).send({ name: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/milestones/${missingId}`,
+        (req) => asOwner(req).send({ name: 'Ghost' }),
+        '404',
+        'unknown milestone',
+      );
+    });
+
+    it('DELETE /milestones/{milestoneId} returns 200, 401, 403 and 404', async () => {
+      const removed = await probe(
+        'delete',
+        `/milestones/${milestoneId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(removed.body.message).toBe('Milestone deleted');
+
+      await probe(
+        'delete',
+        `/milestones/${milestoneId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'delete',
+        `/milestones/${milestoneId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'delete',
+        `/milestones/${missingId}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown milestone',
+      );
+    });
+
+    it('GET /milestones/trash returns 200, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/milestones/trash',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.map((entry: { id: string }) => entry.id)).toContain(
+        milestoneId,
+      );
+
+      await probe('get', '/milestones/trash', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/milestones/trash',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('POST /milestones/{milestoneId}/restore returns 201, 401, 403, 404 and 409', async () => {
+      const restored = await probe(
+        'post',
+        `/milestones/${milestoneId}/restore`,
+        (req) => asOwner(req),
+        '201',
+      );
+      expect(restored.body.id).toBe(milestoneId);
+
+      await probe(
+        'post',
+        `/milestones/${milestoneId}/restore`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/milestones/${milestoneId}/restore`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/milestones/${missingId}/restore`,
+        (req) => asOwner(req),
+        '404',
+        'unknown milestone',
+      );
+      await probe(
+        'post',
+        `/milestones/${milestoneId}/restore`,
+        (req) => asOwner(req),
+        '409',
+        'not deleted',
+      );
+    });
+
+    it('GET /activity routes return 200, 401 and 403', async () => {
+      for (const path of [
+        '/activity',
+        `/activity/task/${taskId}`,
+        `/activity/project/${projectId}`,
+        `/activity/entity/task/${taskId}`,
+      ]) {
+        await probe('get', path, (req) => asOwner(req), '200');
+        await probe('get', path, (req) => req, '401', 'no token');
+        await probe('get', path, (req) => asOutsider(req), '403', 'not a member');
+      }
+    });
+
+    it('POST /comments returns 400, 401, 403, 404 and 201', async () => {
+      await probe(
+        'post',
+        '/comments',
+        (req) => req.send({ content: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/comments',
+        (req) => asOutsider(req).send({ taskId, content: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/comments',
+        (req) => asOwner(req).send({ content: 'No target' }),
+        '400',
+        'no task or subtask',
+      );
+      await probe(
+        'post',
+        '/comments',
+        (req) => asOwner(req).send({ taskId: missingId, content: 'Ghost' }),
+        '404',
+        'unknown task',
+      );
+      await probe(
+        'post',
+        '/comments',
+        (req) => asOwner(req).send({ taskId, content: 'Looks good' }),
+        '201',
+      );
+      await probe(
+        'post',
+        '/comments',
+        (req) =>
+          asOwner(req).send({ subtaskId, content: 'Subtask note' }),
+        '201',
+        'on a subtask',
+      );
+    });
+
+    it('GET /comments routes return 200, 401 and 403', async () => {
+      for (const path of [
+        `/comments/task/${taskId}`,
+        `/comments/subtask/${subtaskId}`,
+      ]) {
+        const listed = await probe(
+          'get',
+          path,
+          (req) => asOwner(req),
+          '200',
+        );
+        expect(listed.body.items.length).toBeGreaterThan(0);
+
+        await probe('get', path, (req) => req, '401', 'no token');
+        await probe('get', path, (req) => asOutsider(req), '403', 'not a member');
+      }
+    });
+
+    it('PATCH /comments/{commentId} returns 200, 400, 401, 403 and 404', async () => {
+      const listed = await probe(
+        'get',
+        `/comments/task/${taskId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      const commentId = listed.body.items[0].id as string;
+
+      const updated = await probe(
+        'patch',
+        `/comments/${commentId}`,
+        (req) => asOwner(req).send({ content: 'Looks good to me' }),
+        '200',
+      );
+      expect(updated.body.content).toBe('Looks good to me');
+
+      await probe(
+        'patch',
+        `/comments/${commentId}`,
+        (req) => asOwner(req).send({ content: '' }),
+        '400',
+        'empty content',
+      );
+      await probe(
+        'patch',
+        `/comments/${commentId}`,
+        (req) => req.send({ content: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/comments/${commentId}`,
+        (req) => asOutsider(req).send({ content: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/comments/${missingId}`,
+        (req) => asOwner(req).send({ content: 'Ghost' }),
+        '404',
+        'unknown comment',
+      );
+    });
+
+    it('DELETE /comments/{commentId} returns 200, 401, 403 and 404', async () => {
+      const listed = await probe(
+        'get',
+        `/comments/task/${taskId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      const commentId = listed.body.items[0].id as string;
+
+      await probe(
+        'delete',
+        `/comments/${commentId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'delete',
+        `/comments/${commentId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'delete',
+        `/comments/${missingId}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown comment',
+      );
+      await probe(
+        'delete',
+        `/comments/${commentId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+    });
+
+    it('POST /attachments/upload returns 400, 401, 403, 404 and 201', async () => {
+      await probe(
+        'post',
+        '/attachments/upload',
+        (req) => req.query({ taskId }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/attachments/upload',
+        (req) => asOutsider(req).query({ taskId }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/attachments/upload',
+        (req) => asOwner(req).query({ taskId }),
+        '400',
+        'no file',
+      );
+      await probe(
+        'post',
+        '/attachments/upload',
+        (req) =>
+          asOwner(req).attach('file', Buffer.from('hello'), 'hello.txt'),
+        '400',
+        'no target',
+      );
+      await probe(
+        'post',
+        '/attachments/upload',
+        (req) =>
+          asOwner(req)
+            .query({ taskId: missingId })
+            .attach('file', Buffer.from('hello'), 'hello.txt'),
+        '404',
+        'unknown task',
+      );
+
+      const uploaded = await probe(
+        'post',
+        '/attachments/upload',
+        (req) =>
+          asOwner(req)
+            .query({ taskId })
+            .attach('file', Buffer.from('hello'), {
+              filename: 'hello.txt',
+              contentType: 'text/plain',
+            }),
+        '201',
+      );
+      attachmentId = uploaded.body.id;
+    });
+
+    it('GET /attachments/task/{taskId} returns 200, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        `/attachments/task/${taskId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.map((item: { id: string }) => item.id)).toContain(
+        attachmentId,
+      );
+
+      await probe(
+        'get',
+        `/attachments/task/${taskId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/attachments/task/${taskId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /attachments/{attachmentId}/download returns 200, 401, 403 and 404', async () => {
+      await probe(
+        'get',
+        `/attachments/${attachmentId}/download`,
+        (req) => asOwner(req),
+        '200',
+      );
+      await probe(
+        'get',
+        `/attachments/${attachmentId}/download`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/attachments/${attachmentId}/download`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/attachments/${missingId}/download`,
+        (req) => asOwner(req),
+        '404',
+        'unknown attachment',
+      );
+    });
+  });
+
+  describe('chat', () => {
+    let ownerId = '';
+    let channelId = '';
+    let messageId = '';
+    let directChannelId = '';
+
+    const missingId = '00000000-0000-4000-8000-000000000000';
+
+    it('GET /chat/channels returns 200, 401 and 403', async () => {
+      const profile = await probe(
+        'get',
+        '/auth/profile',
+        (req) => auth(ownerToken, req),
+        '200',
+      );
+      ownerId = profile.body.id;
+
+      const listed = await probe(
+        'get',
+        '/chat/channels',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.items.length).toBeGreaterThan(0);
+      channelId = listed.body.items[0].channel.id;
+
+      await probe('get', '/chat/channels', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/chat/channels',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('POST /chat/channels returns 400, 401, 403 and 201', async () => {
+      await probe(
+        'post',
+        '/chat/channels',
+        (req) => req.send({ participantIds: [] }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/chat/channels',
+        (req) => asOutsider(req).send({ participantIds: [] }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/chat/channels',
+        (req) => asOwner(req).send({ participantIds: [] }),
+        '400',
+        'too few participants',
+      );
+
+      const created = await probe(
+        'post',
+        '/chat/channels',
+        (req) =>
+          asOwner(req).send({
+            participantIds: [ownerId, memberUserId],
+            name: 'Contract conversation',
+          }),
+        '201',
+      );
+      directChannelId = created.body.id;
+    });
+
+    it('GET /chat/channels/scope returns 200, 400, 401, 403 and 404', async () => {
+      const org = await probe(
+        'get',
+        '/chat/channels/scope',
+        (req) => asOwner(req).query({ type: 'organization' }),
+        '200',
+      );
+      expect(org.body.channel.id).toBe(channelId);
+
+      await probe(
+        'get',
+        '/chat/channels/scope',
+        (req) =>
+          asOwner(req).query({ type: 'organization', projectId: missingId }),
+        '400',
+        'organization room with a scope',
+      );
+      await probe(
+        'get',
+        '/chat/channels/scope',
+        (req) => req.query({ type: 'organization' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        '/chat/channels/scope',
+        (req) => asOutsider(req).query({ type: 'organization' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        '/chat/channels/scope',
+        (req) =>
+          asOwner(req).query({ type: 'project', projectId: missingId }),
+        '404',
+        'unknown project',
+      );
+    });
+
+    it('GET /chat/channels/{channelId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/chat/channels/${directChannelId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.id).toBe(directChannelId);
+      expect(found.body.participants).toHaveLength(2);
+
+      await probe(
+        'get',
+        `/chat/channels/${channelId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/chat/channels/${channelId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/chat/channels/${missingId}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown channel',
+      );
+    });
+
+    it('GET /chat/channels/{channelId}/messages returns 200, 401, 403 and 404', async () => {
+      const listed = await probe(
+        'get',
+        `/chat/channels/${channelId}/messages`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.items).toEqual(expect.any(Array));
+
+      await probe(
+        'get',
+        `/chat/channels/${channelId}/messages`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/chat/channels/${channelId}/messages`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/chat/channels/${missingId}/messages`,
+        (req) => asOwner(req),
+        '404',
+        'unknown channel',
+      );
+    });
+
+    it('POST /chat/channels/{channelId}/messages returns 400, 401, 403, 404 and 201', async () => {
+      await probe(
+        'post',
+        `/chat/channels/${channelId}/messages`,
+        (req) => req.send({ body: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/chat/channels/${channelId}/messages`,
+        (req) => asOutsider(req).send({ body: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/chat/channels/${channelId}/messages`,
+        (req) => asOwner(req).send({ body: '' }),
+        '400',
+        'blank body',
+      );
+      await probe(
+        'post',
+        `/chat/channels/${missingId}/messages`,
+        (req) => asOwner(req).send({ body: 'Ghost' }),
+        '404',
+        'unknown channel',
+      );
+
+      const sent = await probe(
+        'post',
+        `/chat/channels/${channelId}/messages`,
+        (req) => asOwner(req).send({ body: 'Hello from the contract' }),
+        '201',
+      );
+      messageId = sent.body.id;
+    });
+
+    it('PATCH /chat/messages/{messageId} returns 200, 400, 401, 403 and 404', async () => {
+      const edited = await probe(
+        'patch',
+        `/chat/messages/${messageId}`,
+        (req) => asOwner(req).send({ body: 'Hello again' }),
+        '200',
+      );
+      expect(edited.body.body).toBe('Hello again');
+
+      await probe(
+        'patch',
+        `/chat/messages/${messageId}`,
+        (req) => asOwner(req).send({ body: '' }),
+        '400',
+        'blank body',
+      );
+      await probe(
+        'patch',
+        `/chat/messages/${messageId}`,
+        (req) => req.send({ body: 'Anonymous' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/chat/messages/${messageId}`,
+        (req) => asOutsider(req).send({ body: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        `/chat/messages/${missingId}`,
+        (req) => asOwner(req).send({ body: 'Ghost' }),
+        '404',
+        'unknown message',
+      );
+    });
+
+    it('POST /chat/channels/{channelId}/read returns 200, 401, 403 and 404', async () => {
+      const read = await probe(
+        'post',
+        `/chat/channels/${channelId}/read`,
+        (req) => asOwner(req).send({}),
+        '200',
+      );
+      expect(read.body.lastReadAt).toEqual(expect.any(String));
+
+      await probe(
+        'post',
+        `/chat/channels/${channelId}/read`,
+        (req) => req.send({}),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/chat/channels/${channelId}/read`,
+        (req) => asOutsider(req).send({}),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/chat/channels/${missingId}/read`,
+        (req) => asOwner(req).send({}),
+        '404',
+        'unknown channel',
+      );
+    });
+
+    it('DELETE /chat/messages/{messageId} returns 200, 401, 403 and 404', async () => {
+      await probe(
+        'delete',
+        `/chat/messages/${messageId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'delete',
+        `/chat/messages/${messageId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'delete',
+        `/chat/messages/${missingId}`,
+        (req) => asOwner(req),
+        '404',
+        'unknown message',
+      );
+      await probe(
+        'delete',
+        `/chat/messages/${messageId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+    });
+  });
+
   describe('time entries and estimation', () => {
     let entryId = '';
     let trashEntryId = '';

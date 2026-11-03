@@ -38,6 +38,7 @@ import { TimeComplexityModule } from './time-complexity/time-complexity.module.j
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { ActivityModule } from './activity/activity.module.js';
+import { ChatModule } from './chat/chat.module.js';
 import { CommentModule } from './comment/comment.module.js';
 import { AttachmentModule } from './attachment/attachment.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
@@ -131,6 +132,7 @@ import { RealtimeModule } from './realtime/realtime.module.js';
     MilestoneModule,
     NotificationModule,
     ActivityModule,
+    ChatModule,
     CommentModule,
     AttachmentModule,
     RealtimeModule,

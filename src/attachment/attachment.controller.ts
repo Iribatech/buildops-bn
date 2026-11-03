@@ -12,18 +12,33 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiConsumes,
-  ApiExcludeController,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { OrgAuth, type OrganizationAuthContext } from '../common/decorators/org-auth.decorator.js';
-import { OrganizationHeader, Protected, RequirePermissions } from '../common/decorators/protected.decorator.js';
+import {
+  ApiErrors,
+  ApiRateLimited,
+} from '../common/decorators/api-errors.decorator.js';
+import {
+  OrgAuth,
+  type OrganizationAuthContext,
+} from '../common/decorators/org-auth.decorator.js';
+import {
+  OrganizationHeader,
+  Protected,
+  RequirePermissions,
+} from '../common/decorators/protected.decorator.js';
 import { PERMISSIONS } from '../common/permissions.js';
-import { AttachmentService } from './attachment.service.js';
+import { AttachmentService } from '../attachment/attachment.service.js';
+import { AttachmentResponseDto } from './dto/attachment.dto.js';
 import type { Response } from 'express';
 
-@ApiExcludeController()
+/**
+ * Files attached to tasks, subtasks and comments. Downloads require the same
+ * authentication as every other route: an attachment URL is not a public link.
+ */
+@ApiRateLimited()
 @ApiTags('attachments')
 @Protected()
 @Controller('attachments')
@@ -34,7 +49,18 @@ export class AttachmentController {
   @OrganizationHeader()
   @RequirePermissions(PERMISSIONS.TASK_UPDATE)
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload file/photo/document to task/subtask/comment' })
+  @ApiOperation({
+    summary: 'Upload a file to a task, subtask or comment',
+    description:
+      'Multipart upload with the file in the `file` field and exactly one of ' +
+      '`taskId`, `subtaskId` or `commentId` as the target.',
+  })
+  @ApiResponse({
+    description: 'The stored attachment',
+    status: 201,
+    type: AttachmentResponseDto,
+  })
+  @ApiErrors(400, 401, 403, 404)
   @UseInterceptors(FileInterceptor('file'))
   upload(
     @OrgAuth() auth: OrganizationAuthContext,
@@ -53,7 +79,16 @@ export class AttachmentController {
   @Get('task/:taskId')
   @OrganizationHeader()
   @RequirePermissions(PERMISSIONS.TASK_VIEW)
-  @ApiOperation({ summary: 'List attachments for a task' })
+  @ApiOperation({
+    summary: 'List attachments for a task',
+    description: 'Every live attachment on a task, newest first.',
+  })
+  @ApiResponse({
+    description: 'The attachments on the task',
+    status: 200,
+    type: [AttachmentResponseDto],
+  })
+  @ApiErrors(401, 403)
   listForTask(
     @OrgAuth() auth: OrganizationAuthContext,
     @Param('taskId') taskId: string,
@@ -64,7 +99,17 @@ export class AttachmentController {
   @Get(':attachmentId/download')
   @OrganizationHeader()
   @RequirePermissions(PERMISSIONS.TASK_VIEW)
-  @ApiOperation({ summary: 'Download attachment (auth required)' })
+  @ApiOperation({
+    summary: 'Download an attachment',
+    description:
+      'Streams the stored file. Authentication and organization membership ' +
+      'are required, so the URL cannot be shared as a public link.',
+  })
+  @ApiResponse({
+    description: 'The file contents',
+    status: 200,
+  })
+  @ApiErrors(401, 403, 404)
   async download(
     @OrgAuth() auth: OrganizationAuthContext,
     @Param('attachmentId') attachmentId: string,

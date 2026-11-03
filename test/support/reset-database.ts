@@ -16,6 +16,13 @@ import type { DataSource } from 'typeorm';
 const TABLES = [
   // Before their owners: both cascade from `users` and `organizations`, but
   // listing them first keeps the intent obvious if the cascade ever changes.
+  'chat_channel_participants',
+  'chat_messages',
+  'chat_channels',
+  'activities',
+  'comment_mentions',
+  'comments',
+  'attachments',
   'organization_settings',
   'user_settings',
   'refresh_tokens',

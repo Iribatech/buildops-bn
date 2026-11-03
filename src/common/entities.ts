@@ -28,6 +28,11 @@ import { UserSettings } from '../settings/user-settings.entity.js';
 import { Activity } from '../activity/activity.entity.js';
 import { Comment, CommentMention } from '../comment/comment.entity.js';
 import { Attachment } from '../attachment/attachment.entity.js';
+import {
+  ChatChannel,
+  ChatChannelParticipant,
+  ChatMessage,
+} from '../chat/chat.entity.js';
 import { OrganizationSettings } from '../settings/organization-settings.entity.js';
 
 /** Every entity mapped by the ORM; the single source of truth for TypeORM. */
@@ -64,4 +69,7 @@ export const ENTITIES = [
   Comment,
   CommentMention,
   Attachment,
+  ChatChannel,
+  ChatMessage,
+  ChatChannelParticipant,
 ];

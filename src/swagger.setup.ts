@@ -44,6 +44,13 @@ const TAGS: [name: string, description: string][] = [
   ['badges', 'Badges within an organization'],
   ['tasks', 'Tasks within projects'],
   ['subtasks', 'Subtasks under tasks, and the work assigned to you'],
+  ['milestones', 'Project milestones and their target dates'],
+  [
+    'activity',
+    'The organization activity trail: who changed what, newest first',
+  ],
+  ['comments', 'Comments on tasks and subtasks, with @mention support'],
+  ['attachments', 'Files attached to tasks, subtasks and comments'],
   [
     'notifications',
     'Your own in-app notifications, and the unread count behind the bell',
@@ -51,6 +58,10 @@ const TAGS: [name: string, description: string][] = [
   ['time-entries', 'Time entries tracking work'],
   ['time-complexity', 'Time complexity configurations'],
   ['dashboard', 'Dashboard metrics and summaries'],
+  [
+    'chat',
+    'Organization, project, task, subtask and direct conversations with unread tracking',
+  ],
   [
     'settings',
     'Personal preferences of the authenticated user, the settings shared by an organization, and the account itself: credentials, sessions and deletion',

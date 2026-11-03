@@ -19,6 +19,7 @@ import { ProjectHumanResources1700000000016 } from './migrations/1700000000016-p
 import { Activities1700000000017 } from './migrations/1700000000017-activities.js';
 import { CommentsAttachments1700000000018 } from './migrations/1700000000018-comments-attachments.js';
 import { HrManagement1700000000019 } from './migrations/1700000000019-hr-management.js';
+import { Chat1700000000020 } from './migrations/1700000000020-chat.js';
 
 /**
  * The ordered migration list. TypeORM records what has run in the `migrations`
@@ -47,4 +48,5 @@ export const MIGRATIONS: (new () => MigrationInterface)[] = [
   Activities1700000000017,
   CommentsAttachments1700000000018,
   HrManagement1700000000019,
+  Chat1700000000020,
 ];
