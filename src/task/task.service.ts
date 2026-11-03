@@ -26,7 +26,7 @@ import {
   type TrashEntryDto,
 } from '../common/soft-delete.js';
 import { CreateTaskDto, TaskQueryDto, UpdateTaskDto } from './dto/task.dto.js';
-import { recordActivity } from '../activity/record-activity.js';
+import { ActivityService } from '../activity/activity.service.js';
 
 /** A task plus the subtask totals the board renders on its card. */
 export interface TaskWithRollup {
@@ -62,6 +62,7 @@ export class TaskService {
     // A task may be scheduled under a milestone of the same project. Resolution
     // (and the "same project" rule) lives with the milestone, not here.
     private readonly milestoneService: MilestoneService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -207,32 +208,30 @@ export class TaskService {
       dto.milestoneId,
     );
 
-    const created = await this.taskRepo.manager.transaction(async (manager) => {
-      const taskRepo = manager.getRepository(Task);
-      const saved = await taskRepo.save(
-        taskRepo.create({
-          projectId: project.id,
-          teamId,
-          badgeId,
-          milestoneId,
-          title: dto.title.trim(),
-          description: dto.description ?? null,
-          priority: dto.priority ?? 'medium',
-          status: dto.status ?? 'todo',
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-        }),
-      );
-
-      await recordActivity(manager, {
-        organizationId,
-        entityType: 'task',
-        action: 'created',
-        entityId: saved.id,
+    const created = await this.taskRepo.save(
+      this.taskRepo.create({
         projectId: project.id,
-        metadata: { title: saved.title },
-      });
+        teamId,
+        badgeId,
+        milestoneId,
+        title: dto.title.trim(),
+        description: dto.description ?? null,
+        priority: dto.priority ?? 'medium',
+        status: dto.status ?? 'todo',
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+      }),
+    );
 
-      return saved;
+    void this.activity.log({
+      organizationId,
+      actorId: null,
+      entityType: 'task',
+      entityId: created.id,
+      action: 'created',
+      title: 'Task created',
+      body: created.title,
+      projectId: created.projectId,
+      taskId: created.id,
     });
 
     // Re-read rather than answering from the insert: the row just written has
@@ -283,20 +282,7 @@ export class TaskService {
       task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
     }
 
-    await this.taskRepo.manager.transaction(async (manager) => {
-      const taskRepo = manager.getRepository(Task);
-      await taskRepo.save(task);
-
-      await recordActivity(manager, {
-        organizationId,
-        entityType: 'task',
-        action: 'updated',
-        entityId: taskId,
-        projectId: task.projectId,
-        metadata: { title: task.title },
-      });
-    });
-
+    await this.taskRepo.save(task);
     return this.findOne(organizationId, taskId);
   }
 
@@ -313,7 +299,7 @@ export class TaskService {
     actorId: string,
     confirmed: boolean,
   ): Promise<{ deleted: number }> {
-    const task = await this.findOne(organizationId, taskId);
+    await this.findOne(organizationId, taskId);
 
     if (!confirmed) {
       throw new ConflictException(CASCADE_CONFIRMATION_REQUIRED);
@@ -360,16 +346,6 @@ export class TaskService {
       }
 
       await softDeleteBy(taskRepo, 'id = :taskId', { taskId }, actorId, at);
-
-      await recordActivity(manager, {
-        organizationId,
-        entityType: 'task',
-        action: 'deleted',
-        entityId: taskId,
-        actorId,
-        projectId: task.projectId,
-        metadata: { deleted: entries + subtaskIds.length + 1 },
-      });
 
       return { deleted: entries + subtaskIds.length + 1 };
     });
@@ -421,15 +397,6 @@ export class TaskService {
       }
 
       await restoreBy(taskRepo, 'id = :taskId', { taskId });
-
-      await recordActivity(manager, {
-        organizationId,
-        entityType: 'task',
-        action: 'restored',
-        entityId: taskId,
-        projectId: task.projectId,
-        metadata: { title: task.title },
-      });
     });
 
     return this.findOne(organizationId, taskId);

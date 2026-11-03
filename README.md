@@ -8,15 +8,20 @@ NestJS + TypeORM backend powering BuildOps (multi-tenant project/task/time track
   (httpOnly cookie + CSRF double-submit, with per-device session list and "log out
 everywhere")
 - Multi-tenant model: Subscription → Organization → Users, Roles, Permissions
-- Resources: Clients, Projects, Teams, Badges, Tasks/Subtasks, Milestones, Time Entries, Time Complexity, Dashboard, Activity
+- Resources: Clients, Projects, Project HR, Teams, Departments, Employees, Leave
+  types/requests/balances, Performance Reviews, Badges, Tasks/Subtasks, Milestones,
+  Time Entries, Time Complexity, Comments, Attachments, Activity, Dashboard
+- Chat: organization, project, task and subtask rooms plus direct conversations,
+  over REST and authenticated Socket.IO; messages support edit, soft delete and
+  per-user read markers
 - In-app notifications as the "what's new" feed: targeted assignment/status events
   plus lifecycle broadcasts (created/updated/deleted) delivered to owners and
   project managers, with unread counts and read/read-all inbox routes
-- Activity analysis: an append-only "who did what" trail written in the same
-  transaction as every mutation, surfaced as timeline, leaderboard, breakdown
-  and feed projections behind `analytics.view`
-- Soft delete with a trash and a restore route for every resource that can be
-  deleted; cascading deletes are recoverable and report how many rows they took
+- Soft delete with trash and restore routes for clients, projects, tasks,
+  subtasks, milestones, time entries, badges and teams; cascading deletes are
+  recoverable and report how many rows they took. Comments and chat messages are
+  soft-deleted without a trash route. Departments and project human resources
+  use activate/deactivate instead
 - Global validation, CORS, Helmet, rate limiting
 - OpenAPI 3.0 (Swagger UI) as the single documentation source
 
@@ -46,7 +51,7 @@ Outside `NODE_ENV=production`, verification and reset flows do not need SMTP at 
 
 ## Architecture
 
-Domain modules under `src/` (feature-first): `auth`, `subscription`, `organization`, `role`, `team`, `client`, `project`, `badge`, `task`, `subtask`, `milestone`, `notification`, `time-entry`, `time-complexity`, `dashboard`, `activity`, `plan`, `user`, `mail`.
+Domain modules under `src/` (feature-first): `auth`, `subscription`, `organization`, `role`, `team`, `department`, `employee`, `leave`, `performance-review`, `human-resource`, `client`, `project`, `badge`, `task`, `subtask`, `milestone`, `comment`, `attachment`, `activity`, `chat`, `notification`, `realtime`, `time-entry`, `time-complexity`, `dashboard`, `plan`, `user`, `mail`.
 Global guards: `ThrottlerGuard` (rate limiting). Org-scoped routes require `x-organization-id` or `:organizationId` param via `@Protected()`, permissions via `@RequirePermissions(...)`.
 
 ## Commands
@@ -95,6 +100,14 @@ soft-deleted: `DELETE` hides a record from every ordinary read, `GET /{resource}
 lists what is hidden, and `POST /{resource}/{id}/restore` brings a record back.
 Restoring returns exactly what went down with the delete that flagged the record,
 and a child whose parent is still deleted cannot be restored on its own.
+
+Departments and project human resources are the exceptions. They are
+organizational structure and project staffing, not content: there is no trash or
+restore route. A department stays visible with `status: "active" | "inactive"`,
+changed through `POST /departments/{departmentId}/deactivate` and
+`POST /departments/{departmentId}/activate`. A person on a project follows the
+same lifecycle at
+`POST /projects/{projectId}/human-resources/{humanResourceId}/deactivate`.
 
 Deleting a project, task or subtask takes the work and time logged under it, and
 answers `409` until the request carries `?confirm=cascade`; the `200` then reports
@@ -222,10 +235,10 @@ sign-out button needs no special casing.
 - `docs/frontend-guide.md` — frontend integration (auth, org context, errors, pagination, examples)
 - `docs/openapi.json` — machine-readable contract (do not edit; regen via docs:openapi)
 
-The OpenAPI document is the single source of API documentation and is published
-incrementally, one module at a time. It currently covers `auth`, `plans`,
-`subscription` and `organizations` (22 endpoints); the remaining modules are
-marked `@ApiExcludeController()` and join the document as they are documented.
+The OpenAPI document is the single source of API documentation and covers every
+published module (192 operations across 129 paths). `test/contract.e2e-spec.ts`
+checks that the running server never returns a status the document does not
+declare and that every declared error status is actually reachable.
 
 - `schema.sql` — archival snapshot of the original database design (see [Database](#database))
 
