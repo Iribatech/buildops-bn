@@ -81,7 +81,7 @@ export class RealtimeGateway
       client.data.sessionId = payload.sid;
       client.join(`user:${user.id}`);
       this.logger.debug(`User ${user.id} connected`);
-    } catch (error) {
+    } catch {
       this.logger.debug('Socket auth failed');
       client.disconnect();
     }

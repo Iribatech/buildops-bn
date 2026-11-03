@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Comment, CommentMention } from './comment.entity.js';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto.js';
 import { Task } from '../task/task.entity.js';
@@ -80,7 +81,7 @@ export class CommentService {
   ) {
     const { page, limit, skip } = resolvePage(query as any);
     const [items, total] = await this.commentRepo.findAndCount({
-      where: { organizationId, taskId, deletedAt: null as any },
+      where: { organizationId, taskId, deletedAt: IsNull() },
       relations: { author: true, attachments: true },
       order: { createdAt: 'ASC' },
       skip,
@@ -101,7 +102,7 @@ export class CommentService {
   ) {
     const { page, limit, skip } = resolvePage(query as any);
     const [items, total] = await this.commentRepo.findAndCount({
-      where: { organizationId, subtaskId, deletedAt: null as any },
+      where: { organizationId, subtaskId, deletedAt: IsNull() },
       relations: { author: true, attachments: true },
       order: { createdAt: 'ASC' },
       skip,
@@ -131,7 +132,7 @@ export class CommentService {
     if (subtaskId) {
       const subtask = await this.subtaskRepo.findOne({
         where: { id: subtaskId },
-        relations: ['task', 'task.project'],
+        relations: { task: { project: true } },
       } as any);
       if (!subtask) throw new NotFoundException('Subtask not found');
       const task = (subtask as any).task;
@@ -141,7 +142,7 @@ export class CommentService {
       projectId = task.projectId;
       taskId = task.id;
     } else if (taskId) {
-      const task = await this.taskRepo.findOne({ where: { id: taskId }, relations: ['project'] } as any);
+      const task = await this.taskRepo.findOne({ where: { id: taskId }, relations: { project: true } });
       if (!task || (task as any).project?.organizationId !== organizationId) {
         throw new NotFoundException('Task not found in this organization');
       }
@@ -227,7 +228,7 @@ export class CommentService {
       relations: { author: true, attachments: true },
     });
     if (!comment) throw new NotFoundException('Comment not found');
-    if (comment.authorId !== authorId) throw new BadRequestException('Not allowed to edit this comment');
+    if (comment.authorId !== authorId) throw new ForbiddenException('Not allowed to edit this comment');
 
     comment.content = dto.content;
     comment.editedAt = new Date();
@@ -250,7 +251,7 @@ export class CommentService {
       where: { id: commentId, organizationId },
     });
     if (!comment) throw new NotFoundException('Comment not found');
-    if (comment.authorId !== authorId) throw new BadRequestException('Not allowed to delete this comment');
+    if (comment.authorId !== authorId) throw new ForbiddenException('Not allowed to delete this comment');
 
     await this.commentRepo.softDelete(comment.id);
 

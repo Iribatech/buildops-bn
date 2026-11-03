@@ -5,7 +5,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Attachment } from './attachment.entity.js';
 import { Task } from '../task/task.entity.js';
 import { Subtask } from '../subtask/subtask.entity.js';
@@ -76,7 +76,7 @@ export class AttachmentService {
       taskId = comment.taskId;
       subtaskId = comment.subtaskId;
     } else if (subtaskId) {
-      const subtask = await this.subtaskRepo.findOne({ where: { id: subtaskId }, relations: ['task', 'task.project'] } as any);
+      const subtask = await this.subtaskRepo.findOne({ where: { id: subtaskId }, relations: { task: { project: true } } });
       if (!subtask) throw new NotFoundException('Subtask not found');
       const task = (subtask as any).task;
       if (!task || (task as any).project?.organizationId !== organizationId) {
@@ -130,7 +130,7 @@ export class AttachmentService {
 
   async listForTask(organizationId: string, taskId: string) {
     const attachments = await this.attachmentRepo.find({
-      where: { organizationId, taskId, deletedAt: null as any },
+      where: { organizationId, taskId, deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
     return attachments.map((a) => a.toResponse());
