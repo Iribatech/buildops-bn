@@ -128,7 +128,7 @@ const build = () => {
     create: jest.fn((_entity: unknown, values: unknown) => values),
     save: jest.fn(async (record: unknown) => record),
     getRepository: jest.fn((entity: { name: string }) => {
-      if (entity.name === 'ActivityEvent') {
+      if (entity.name === 'Activity') {
         return {
           create: jest.fn((values: unknown) => values),
           save: jest.fn(async (record: unknown) => record),

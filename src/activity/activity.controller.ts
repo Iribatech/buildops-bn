@@ -1,6 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { PERMISSIONS } from '../common/permissions.js';
+import { PaginatedSchema } from '../common/dto/paginated-response.dto.js';
 import {
   ApiErrors,
   ApiRateLimited,
@@ -14,108 +14,129 @@ import {
   Protected,
   RequirePermissions,
 } from '../common/decorators/protected.decorator.js';
-import { PaginatedSchema } from '../common/dto/paginated-response.dto.js';
+import { PaginationQueryDto, type Paginated } from '../common/pagination.dto.js';
+import { PERMISSIONS } from '../common/permissions.js';
+import { ActivityResponseDto } from './dto/activity.dto.js';
 import { ActivityService } from './activity.service.js';
-import {
-  ActivityBreakdownDto,
-  ActivityEventDto,
-  ActivityEventsQueryDto,
-  ActivityLeaderboardDto,
-  ActivityLeaderboardQueryDto,
-  ActivityTimelineDto,
-  ActivityTimelineQueryDto,
-} from './dto/activity.dto.js';
 
-const ActivityEventPageDto = PaginatedSchema(
-  ActivityEventDto,
-  'ActivityEventPage',
-);
+const ActivityPageDto = PaginatedSchema(ActivityResponseDto, 'ActivityPage');
 
+/**
+ * The organization's activity trail: who changed what, in reverse chronological
+ * order. Read-only — events are written by the services that perform the
+ * mutation, inside the same transaction.
+ */
 @ApiRateLimited()
 @ApiTags('activity')
 @Protected()
 @Controller('activity')
-@RequirePermissions(PERMISSIONS.ANALYTICS_VIEW)
 export class ActivityController {
-  constructor(private readonly activityService: ActivityService) {}
+  constructor(private readonly activity: ActivityService) {}
 
-  @Get('timeline')
+  @Get()
   @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   @ApiOperation({
-    summary: 'Activity over time',
+    summary: 'List the organization activity feed',
     description:
-      'Event counts bucketed by day or week for the active organization (default: last 30 days).',
+      'Every recorded event in the active organization, newest first. ' +
+      'Requires `task.view`, because the trail describes work.',
   })
   @ApiResponse({
-    description: 'One entry per bucket, oldest first',
+    description: 'One page of activity',
     status: 200,
-    type: ActivityTimelineDto,
+    type: ActivityPageDto,
   })
-  @ApiErrors(400, 403)
-  async timeline(
+  @ApiErrors(401, 403)
+  list(
     @OrgAuth() auth: OrganizationAuthContext,
-    @Query() query: ActivityTimelineQueryDto,
-  ): Promise<ActivityTimelineDto> {
-    return this.activityService.timeline(auth.organizationId, query);
+    @Query() query: PaginationQueryDto,
+  ): Promise<Paginated<ActivityResponseDto>> {
+    return this.activity
+      .listForOrganization(auth.organizationId, query)
+      .then((res) => ({
+        ...res,
+        items: res.items.map((item) => item.toResponse()),
+      })) as Promise<Paginated<ActivityResponseDto>>;
   }
 
-  @Get('leaderboard')
+  @Get('task/:taskId')
   @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   @ApiOperation({
-    summary: 'Most active users',
-    description:
-      'Users ranked by how many events they performed in the range (default: last 30 days).',
+    summary: 'List activity for a task',
+    description: 'Events recorded against one task, newest first.',
   })
   @ApiResponse({
-    description: 'Actors and their event counts, most active first',
+    description: 'One page of activity',
     status: 200,
-    type: ActivityLeaderboardDto,
+    type: ActivityPageDto,
   })
-  @ApiErrors(400, 403)
-  async leaderboard(
+  @ApiErrors(401, 403)
+  listForTask(
     @OrgAuth() auth: OrganizationAuthContext,
-    @Query() query: ActivityLeaderboardQueryDto,
-  ): Promise<ActivityLeaderboardDto> {
-    return this.activityService.leaderboard(auth.organizationId, query);
+    @Param('taskId') taskId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<Paginated<ActivityResponseDto>> {
+    return this.activity
+      .listForTask(auth.organizationId, taskId, query)
+      .then((res) => ({
+        ...res,
+        items: res.items.map((item) => item.toResponse()),
+      })) as Promise<Paginated<ActivityResponseDto>>;
   }
 
-  @Get('breakdown')
+  @Get('project/:projectId')
   @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
   @ApiOperation({
-    summary: 'What kind of activity',
-    description:
-      'Event counts grouped by entity type and action for the active organization (default: last 30 days).',
+    summary: 'List activity for a project',
+    description: 'Events recorded against one project, newest first.',
   })
   @ApiResponse({
-    description: 'Counts per entityType+action, most frequent first',
+    description: 'One page of activity',
     status: 200,
-    type: ActivityBreakdownDto,
+    type: ActivityPageDto,
   })
-  @ApiErrors(400, 403)
-  async breakdown(
+  @ApiErrors(401, 403)
+  listForProject(
     @OrgAuth() auth: OrganizationAuthContext,
-    @Query() query: ActivityEventsQueryDto,
-  ): Promise<ActivityBreakdownDto> {
-    return this.activityService.breakdown(auth.organizationId, query);
+    @Param('projectId') projectId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<Paginated<ActivityResponseDto>> {
+    return this.activity
+      .listForProject(auth.organizationId, projectId, query)
+      .then((res) => ({
+        ...res,
+        items: res.items.map((item) => item.toResponse()),
+      })) as Promise<Paginated<ActivityResponseDto>>;
   }
 
-  @Get('events')
+  @Get('entity/:entityType/:entityId')
   @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   @ApiOperation({
-    summary: 'Activity feed',
+    summary: 'List activity for an entity',
     description:
-      'The raw activity trail, newest first, paginated. Supports the same range and filters as the other analytics endpoints.',
+      'Events recorded against one entity of any supported type, newest first.',
   })
   @ApiResponse({
-    description: 'A page of activity events',
+    description: 'One page of activity',
     status: 200,
-    type: ActivityEventPageDto,
+    type: ActivityPageDto,
   })
-  @ApiErrors(400, 403)
-  async events(
+  @ApiErrors(401, 403)
+  listForEntity(
     @OrgAuth() auth: OrganizationAuthContext,
-    @Query() query: ActivityEventsQueryDto,
-  ): Promise<{ items: ActivityEventDto[]; total: number; page: number; limit: number; totalPages: number }> {
-    return this.activityService.feed(auth.organizationId, query);
+    @Param('entityType') entityType: any,
+    @Param('entityId') entityId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<Paginated<ActivityResponseDto>> {
+    return this.activity
+      .listForEntity(auth.organizationId, entityType, entityId, query)
+      .then((res) => ({
+        ...res,
+        items: res.items.map((item) => item.toResponse()),
+      })) as Promise<Paginated<ActivityResponseDto>>;
   }
 }

@@ -20,6 +20,8 @@ export const NOTIFICATION_TYPES = [
   'milestone_updated',
   'milestone_deleted',
   'milestone_restored',
+  'comment_mentioned',
+  'comment_replied',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

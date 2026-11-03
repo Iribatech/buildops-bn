@@ -21,6 +21,11 @@ import { OrganizationModule } from './organization/organization.module.js';
 import { RoleModule } from './role/role.module.js';
 import { InvitationModule } from './invitation/invitation.module.js';
 import { TeamModule } from './team/team.module.js';
+import { DepartmentModule } from './department/department.module.js';
+import { EmployeeModule } from './employee/employee.module.js';
+import { LeaveModule } from './leave/leave.module.js';
+import { PerformanceReviewModule } from './performance-review/performance-review.module.js';
+import { HumanResourceModule } from './human-resource/human-resource.module.js';
 import { ClientModule } from './client/client.module.js';
 import { ProjectModule } from './project/project.module.js';
 import { BadgeModule } from './badge/badge.module.js';
@@ -32,8 +37,11 @@ import { TimeEntryModule } from './time-entry/time-entry.module.js';
 import { TimeComplexityModule } from './time-complexity/time-complexity.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { SettingsModule } from './settings/settings.module.js';
-import { ChatModule } from './chat/chat.module.js';
 import { ActivityModule } from './activity/activity.module.js';
+import { ChatModule } from './chat/chat.module.js';
+import { CommentModule } from './comment/comment.module.js';
+import { AttachmentModule } from './attachment/attachment.module.js';
+import { RealtimeModule } from './realtime/realtime.module.js';
 import { ActivityContextInterceptor } from './activity/activity-context.interceptor.js';
 
 @Module({
@@ -112,6 +120,11 @@ import { ActivityContextInterceptor } from './activity/activity-context.intercep
     RoleModule,
     InvitationModule,
     TeamModule,
+    DepartmentModule,
+    EmployeeModule,
+    LeaveModule,
+    PerformanceReviewModule,
+    HumanResourceModule,
     ClientModule,
     ProjectModule,
     BadgeModule,
@@ -119,12 +132,15 @@ import { ActivityContextInterceptor } from './activity/activity-context.intercep
     SubtaskModule,
     MilestoneModule,
     NotificationModule,
+    ActivityModule,
+    ChatModule,
+    CommentModule,
+    AttachmentModule,
+    RealtimeModule,
     TimeEntryModule,
     TimeComplexityModule,
     DashboardModule,
     SettingsModule,
-    ChatModule,
-    ActivityModule,
   ],
   controllers: [AppController],
   providers: [

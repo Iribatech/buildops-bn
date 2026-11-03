@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationModule } from '../notification/notification.module.js';
+import { ActivityModule } from '../activity/activity.module.js';
 import { Project } from '../project/project.entity.js';
 import { RoleModule } from '../role/role.module.js';
 import { Task } from '../task/task.entity.js';
@@ -29,6 +30,7 @@ import { AuthModule } from '../auth/auth.module.js';
     // For the assignment notification: assigning a subtask is what rings the
     // bell for whoever receives it.
     NotificationModule,
+    ActivityModule,
   ],
   controllers: [SubtaskController, SubtaskFeedController],
   providers: [SubtaskService],
