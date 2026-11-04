@@ -9,6 +9,8 @@ export interface AuthenticatedUser {
   status: string | null;
   organizationId: string | null;
   isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   /**
    * The session this access token belongs to, from the token's `sid` claim.
    *
