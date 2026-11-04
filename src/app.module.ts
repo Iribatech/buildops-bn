@@ -42,6 +42,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { CommentModule } from './comment/comment.module.js';
 import { AttachmentModule } from './attachment/attachment.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
+import { WorkspaceModule } from './workspace/workspace.module.js';
 import { ActivityContextInterceptor } from './activity/activity-context.interceptor.js';
 
 @Module({
@@ -141,6 +142,7 @@ import { ActivityContextInterceptor } from './activity/activity-context.intercep
     TimeComplexityModule,
     DashboardModule,
     SettingsModule,
+    WorkspaceModule,
   ],
   controllers: [AppController],
   providers: [

@@ -80,6 +80,9 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   // The caller's own membership -- the one route any member can read, with no
   // permission check of its own.
   ['GET', '/organizations/{organizationId}/me', ['200']],
+  // The application shell: user, organizations, membership, subscription,
+  // unread count and the caller's assigned work in one call.
+  ['GET', '/workspace', ['200']],
   ['PATCH', '/organizations/{organizationId}', ['200']],
   ['DELETE', '/organizations/{organizationId}', ['200']],
   // Roles and the members that hold them.
@@ -194,6 +197,9 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['POST', '/projects', ['201']],
   ['GET', '/projects', ['200']],
   ['GET', '/projects/{projectId}', ['200']],
+  // The project screen: the project, counts, milestones, staffing and recent
+  // activity read together.
+  ['GET', '/projects/{projectId}/overview', ['200']],
   ['PATCH', '/projects/{projectId}', ['200']],
   ['DELETE', '/projects/{projectId}', ['200']],
   ['GET', '/projects/trash', ['200']],
@@ -225,6 +231,8 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['POST', '/tasks', ['201']],
   ['GET', '/tasks', ['200']],
   ['GET', '/tasks/{taskId}', ['200']],
+  // The task screen: task, subtasks, counts, recent activity and comments.
+  ['GET', '/tasks/{taskId}/workspace', ['200']],
   ['PATCH', '/tasks/{taskId}', ['200']],
   ['DELETE', '/tasks/{taskId}', ['200']],
   ['GET', '/tasks/trash', ['200']],
@@ -323,23 +331,6 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['GET', '/dashboard/projects', ['200']],
   ['GET', '/dashboard/clients', ['200']],
   ['GET', '/dashboard/overdue', ['200']],
-  // Chat: rooms are ensured lazily per scope; messages are written only through
-  // REST and relayed to open sockets.
-  ['GET', '/chat/channels', ['200']],
-  ['POST', '/chat/channels', ['201']],
-  ['GET', '/chat/channels/scope', ['200']],
-  ['GET', '/chat/channels/{channelId}', ['200']],
-  ['GET', '/chat/channels/{channelId}/messages', ['200']],
-  ['POST', '/chat/channels/{channelId}/messages', ['201']],
-  ['PATCH', '/chat/messages/{messageId}', ['200']],
-  ['DELETE', '/chat/messages/{messageId}', ['200']],
-  ['POST', '/chat/channels/{channelId}/read', ['200']],
-  // Activity analysis: four read-only projections over the same event trail,
-  // all organization-scoped and range-filtered like the dashboard.
-  ['GET', '/activity/timeline', ['200']],
-  ['GET', '/activity/leaderboard', ['200']],
-  ['GET', '/activity/breakdown', ['200']],
-  ['GET', '/activity/events', ['200']],
 ];
 
 /** Operations reachable without a bearer token. */

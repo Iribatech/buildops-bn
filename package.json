@@ -27,7 +27,9 @@
     "migration:run": "pnpm run build && pnpm run typeorm -- migration:run",
     "migration:revert": "pnpm run build && pnpm run typeorm -- migration:revert",
     "migration:generate": "pnpm run build && pnpm run typeorm -- migration:generate",
-    "migration:show": "pnpm run build && pnpm run typeorm -- migration:show"
+    "migration:show": "pnpm run build && pnpm run typeorm -- migration:show",
+    "db:seed": "NODE_OPTIONS=--experimental-vm-modules node dist/scripts/seed.js",
+    "db:setup": "pnpm run migration:run && pnpm run db:seed"
   },
   "dependencies": {
     "@nestjs/common": "^12.3.2",

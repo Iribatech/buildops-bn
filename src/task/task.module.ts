@@ -6,6 +6,7 @@ import { Team } from '../team/team.entity.js';
 import { TeamModule } from '../team/team.module.js';
 import { MilestoneModule } from '../milestone/milestone.module.js';
 import { ActivityModule } from '../activity/activity.module.js';
+import { CommentModule } from '../comment/comment.module.js';
 import { TaskController } from './task.controller.js';
 import { Task } from './task.entity.js';
 import { Subtask } from '../subtask/subtask.entity.js';
@@ -26,6 +27,9 @@ import { AuthModule } from '../auth/auth.module.js';
     // milestone, not here.
     MilestoneModule,
     ActivityModule,
+    // The task workspace shows the first page of comments, read through the
+    // service that owns them rather than a second comment query.
+    CommentModule,
   ],
   controllers: [TaskController],
   providers: [TaskService],

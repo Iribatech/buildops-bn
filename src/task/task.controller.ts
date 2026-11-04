@@ -35,6 +35,7 @@ import {
   TaskResponseDto,
   UpdateTaskDto,
 } from './dto/task.dto.js';
+import { TaskWorkspaceResponseDto } from './dto/task-workspace.dto.js';
 import {
   CASCADE_CONFIRMATION,
   ConfirmCascadeDto,
@@ -160,6 +161,29 @@ export class TaskController {
     );
 
     return restored.toResponse();
+  }
+
+  @Get(':taskId/workspace')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
+  @ApiOperation({
+    summary: 'Get a task with its subtasks, activity and comments',
+    description:
+      'The task screen in one call: the task with its rollup, the project it ' +
+      'belongs to, its subtasks, time totals, the ten most recent activity ' +
+      'events and the first page of comments.',
+  })
+  @ApiResponse({
+    description: 'The task and the records that hang off it',
+    status: 200,
+    type: TaskWorkspaceResponseDto,
+  })
+  @ApiErrors(403, 404)
+  async workspace(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+  ): Promise<TaskWorkspaceResponseDto> {
+    return this.taskService.workspace(auth.organizationId, taskId);
   }
 
   @Get(':taskId')

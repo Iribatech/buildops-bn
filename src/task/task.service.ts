@@ -26,7 +26,9 @@ import {
   type TrashEntryDto,
 } from '../common/soft-delete.js';
 import { CreateTaskDto, TaskQueryDto, UpdateTaskDto } from './dto/task.dto.js';
+import type { TaskWorkspaceResponseDto } from './dto/task-workspace.dto.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { CommentService } from '../comment/comment.service.js';
 
 /** A task plus the subtask totals the board renders on its card. */
 export interface TaskWithRollup {
@@ -63,6 +65,7 @@ export class TaskService {
     // (and the "same project" rule) lives with the milestone, not here.
     private readonly milestoneService: MilestoneService,
     private readonly activity: ActivityService,
+    private readonly comments: CommentService,
   ) {}
 
   async list(
@@ -184,6 +187,65 @@ export class TaskService {
     const rollups = await this.rollupsFor([task.id]);
 
     return { task, rollup: rollups.get(task.id) ?? EMPTY_ROLLUP };
+  }
+
+  /**
+   * The task screen in one response.
+   *
+   * Subtasks, activity and comments are read through the services and
+   * repositories that own them, so the workspace and the standalone tabs return
+   * the same records rather than two queries that can drift.
+   */
+  async workspace(
+    organizationId: string,
+    taskId: string,
+  ): Promise<TaskWorkspaceResponseDto> {
+    const detail = await this.findOneDetailed(organizationId, taskId);
+    const task = detail.task;
+
+    const subtasks = await this.subtaskRepo.find({
+      where: { taskId },
+      relations: { assignee: true },
+      order: { createdAt: 'ASC' },
+    });
+    const subtaskIds = subtasks.map((subtask) => subtask.id);
+
+    const [entries, recentActivity, comments, project] = await Promise.all([
+      subtaskIds.length
+        ? this.timeEntryRepo.find({ where: { subtaskId: In(subtaskIds) } })
+        : Promise.resolve([]),
+      this.activity.listForTask(organizationId, taskId, {
+        page: 1,
+        limit: 10,
+      }),
+      this.comments.listForTask(organizationId, taskId, { page: 1, limit: 20 }),
+      this.projectRepo.findOne({
+        where: { id: task.projectId, organizationId },
+      }),
+    ]);
+
+    const now = new Date();
+
+    return {
+      task: task.toResponse(detail.rollup),
+      project: project
+        ? { id: project.id, name: project.name, status: project.status }
+        : null,
+      subtasks: subtasks.map((subtask) => subtask.toResponse()),
+      counts: {
+        subtasks: subtasks.length,
+        completedSubtasks: subtasks.filter(
+          (subtask) => subtask.status === 'done',
+        ).length,
+        timeEntries: entries.length,
+        totalSeconds: entries.reduce(
+          (sum, entry) => sum + entry.durationSeconds(now),
+          0,
+        ),
+      },
+      recentActivity: recentActivity.items.map((item) => item.toResponse()),
+      comments,
+    };
   }
 
   async findOne(organizationId: string, taskId: string): Promise<Task> {
