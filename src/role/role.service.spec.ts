@@ -1,7 +1,7 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
 import { PERMISSIONS } from '../common/permissions.js';
-import { ActivityEvent } from '../activity/activity.entity.js';
+import { Activity } from '../activity/activity.entity.js';
 import { Role } from './role.entity.js';
 import { Permission } from './permission.entity.js';
 import { RoleService } from './role.service.js';
@@ -9,7 +9,7 @@ import { RoleService } from './role.service.js';
 /**
  * A fake `EntityManager` for the activity-recording path.
  *
- * The service now writes an `ActivityEvent` inside the same transaction as the
+ * The service now writes an `Activity` inside the same transaction as the
  * mutation it describes, so the mocks have to answer `create`/`save` for that
  * entity and route `getRepository` back to the per-entity fakes the assertions
  * already hold on to.
@@ -30,7 +30,7 @@ const fakeManager = (repos: {
   getRepository: (entity: unknown) => {
     if (entity === Role) return repos.roles;
     if (entity === Permission) return repos.permissions;
-    if (entity === ActivityEvent) return fakeActivityRepo();
+    if (entity === Activity) return fakeActivityRepo();
     return repos.users;
   },
 });
@@ -231,7 +231,7 @@ describe('RoleService guard rails', () => {
           getRepository: (entity: unknown) => {
             if (entity === Role) return roleRepo;
             if (entity === Permission) return permissionRepo;
-            if (entity === ActivityEvent) return fakeActivityRepo();
+            if (entity === Activity) return fakeActivityRepo();
             return userRepo;
           },
         },

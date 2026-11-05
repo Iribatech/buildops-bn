@@ -22,13 +22,18 @@ export const ACTIVITY_ENTITY_TYPES = [
   'department',
   'human_resource',
   'client',
+  'badge',
   'comment',
   'employee',
   'leave_type',
   'leave_request',
   'performance_review',
+  'time_entry',
   'chat_channel',
   'chat_message',
+  'invitation',
+  'role',
+  'member',
 ] as const;
 
 export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[number];
@@ -48,6 +53,7 @@ export const ACTIVITY_ACTIONS = [
   'moved',
   'completed',
   'reopened',
+  'accepted',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

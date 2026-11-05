@@ -19,6 +19,10 @@ const TAGS: [name: string, description: string][] = [
     'Payment provider integration: plan purchases and the verified Stripe webhook',
   ],
   ['organizations', 'Organization CRUD within the subscription'],
+  [
+    'workspace',
+    'The authenticated application shell: user, organizations, membership, subscription, notifications and assigned work in one call',
+  ],
   ['roles', 'Role definitions and membership assignments'],
   [
     'invitations',
@@ -63,14 +67,6 @@ const TAGS: [name: string, description: string][] = [
   ['time-complexity', 'Time complexity configurations'],
   ['dashboard', 'Dashboard metrics and summaries'],
   [
-    'activity',
-    'Activity trail and analytics: who did what, over time, ranked and broken down',
-  ],
-  [
-    'chat',
-    'Organization, project, task, subtask and direct conversations with unread tracking',
-  ],
-  [
     'settings',
     'Personal preferences of the authenticated user, the settings shared by an organization, and the account itself: credentials, sessions and deletion',
   ],
@@ -105,7 +101,7 @@ export function setupSwagger(app: INestApplication): void {
   const port = process.env.PORT ?? '3000';
 
   const config = new DocumentBuilder()
-    .setTitle('OPS API')
+    .setTitle('OfficeCore API')
     .setDescription(DESCRIPTION)
     .setVersion('1.0')
     // Paths in this document are relative to the prefix, so the server URL has

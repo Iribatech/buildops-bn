@@ -11022,6 +11022,106 @@
         ]
       }
     },
+    "/projects/{projectId}/overview": {
+      "get": {
+        "description": "The project screen in one call: the project, task and subtask counts, logged time, milestones, the project human-resource register and the ten most recent activity events. Each part is scoped to the active organization and read through the module that owns it.",
+        "operationId": "ProjectController_overview",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project, its counts and the records that hang off it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOverviewResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a project with its work, staffing and recent activity",
+        "tags": [
+          "projects"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "project.view"
+        ]
+      }
+    },
     "/projects/{projectId}": {
       "get": {
         "description": "One project of the active organization, with its client reference when linked to a client.",
@@ -12563,6 +12663,106 @@
         ]
       }
     },
+    "/tasks/{taskId}/workspace": {
+      "get": {
+        "description": "The task screen in one call: the task with its rollup, the project it belongs to, its subtasks, time totals, the ten most recent activity events and the first page of comments.",
+        "operationId": "TaskController_workspace",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The task and the records that hang off it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskWorkspaceResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a task with its subtasks, activity and comments",
+        "tags": [
+          "tasks"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.view"
+        ]
+      }
+    },
     "/tasks/{taskId}": {
       "get": {
         "description": "One task of the active organization, with its project, team and badge references.",
@@ -14026,6 +14226,562 @@
           "header": "x-organization-id",
           "pathParameter": "organizationId"
         }
+      }
+    },
+    "/comments/task/{taskId}": {
+      "get": {
+        "description": "Newest first. Deleted comments are omitted.",
+        "operationId": "CommentController_listForTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List comments for a task",
+        "tags": [
+          "comments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.view"
+        ]
+      }
+    },
+    "/comments/subtask/{subtaskId}": {
+      "get": {
+        "description": "Newest first. Deleted comments are omitted.",
+        "operationId": "CommentController_listForSubtask",
+        "parameters": [
+          {
+            "name": "subtaskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List comments for a subtask",
+        "tags": [
+          "comments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.view"
+        ]
+      }
+    },
+    "/comments": {
+      "post": {
+        "description": "Adds a comment to a task or subtask and notifies any member mentioned with `@handle`. The author is the caller.",
+        "operationId": "CommentController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a comment",
+        "tags": [
+          "comments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.update"
+        ]
+      }
+    },
+    "/comments/{commentId}": {
+      "patch": {
+        "description": "Author-only. Sets `editedAt` on the updated comment.",
+        "operationId": "CommentController_update",
+        "parameters": [
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The comment as updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a comment",
+        "tags": [
+          "comments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.update"
+        ]
+      },
+      "delete": {
+        "description": "Author-only. Soft-deletes the comment and hides its attachments.",
+        "operationId": "CommentController_remove",
+        "parameters": [
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The comment is gone from every list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentMessageResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a comment",
+        "tags": [
+          "comments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "task.update"
+        ]
       }
     },
     "/tasks/{taskId}/subtasks": {
@@ -16153,562 +16909,6 @@
         },
         "x-permissions": [
           "chat.view"
-        ]
-      }
-    },
-    "/comments/task/{taskId}": {
-      "get": {
-        "description": "Newest first. Deleted comments are omitted.",
-        "operationId": "CommentController_listForTask",
-        "parameters": [
-          {
-            "name": "taskId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (1-based)",
-            "schema": {
-              "minimum": 1,
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Items per page",
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20,
-              "type": "number"
-            }
-          },
-          {
-            "name": "x-organization-id",
-            "in": "header",
-            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "One page of comments",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentPage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, invalid or expired access token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied, or you are not a member of the active organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List comments for a task",
-        "tags": [
-          "comments"
-        ],
-        "x-auth": {
-          "required": true,
-          "scheme": "bearer",
-          "context": "organization"
-        },
-        "x-organization-context": {
-          "required": true,
-          "header": "x-organization-id",
-          "pathParameter": "organizationId"
-        },
-        "x-permissions": [
-          "task.view"
-        ]
-      }
-    },
-    "/comments/subtask/{subtaskId}": {
-      "get": {
-        "description": "Newest first. Deleted comments are omitted.",
-        "operationId": "CommentController_listForSubtask",
-        "parameters": [
-          {
-            "name": "subtaskId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (1-based)",
-            "schema": {
-              "minimum": 1,
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Items per page",
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20,
-              "type": "number"
-            }
-          },
-          {
-            "name": "x-organization-id",
-            "in": "header",
-            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "One page of comments",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentPage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, invalid or expired access token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied, or you are not a member of the active organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List comments for a subtask",
-        "tags": [
-          "comments"
-        ],
-        "x-auth": {
-          "required": true,
-          "scheme": "bearer",
-          "context": "organization"
-        },
-        "x-organization-context": {
-          "required": true,
-          "header": "x-organization-id",
-          "pathParameter": "organizationId"
-        },
-        "x-permissions": [
-          "task.view"
-        ]
-      }
-    },
-    "/comments": {
-      "post": {
-        "description": "Adds a comment to a task or subtask and notifies any member mentioned with `@handle`. The author is the caller.",
-        "operationId": "CommentController_create",
-        "parameters": [
-          {
-            "name": "x-organization-id",
-            "in": "header",
-            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCommentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "The comment",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed (one message per invalid field) or a business rule was violated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, invalid or expired access token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied, or you are not a member of the active organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource not found, or it belongs to another organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a comment",
-        "tags": [
-          "comments"
-        ],
-        "x-auth": {
-          "required": true,
-          "scheme": "bearer",
-          "context": "organization"
-        },
-        "x-organization-context": {
-          "required": true,
-          "header": "x-organization-id",
-          "pathParameter": "organizationId"
-        },
-        "x-permissions": [
-          "task.update"
-        ]
-      }
-    },
-    "/comments/{commentId}": {
-      "patch": {
-        "description": "Author-only. Sets `editedAt` on the updated comment.",
-        "operationId": "CommentController_update",
-        "parameters": [
-          {
-            "name": "commentId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-organization-id",
-            "in": "header",
-            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCommentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The comment as updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation failed (one message per invalid field) or a business rule was violated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, invalid or expired access token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied, or you are not a member of the active organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource not found, or it belongs to another organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a comment",
-        "tags": [
-          "comments"
-        ],
-        "x-auth": {
-          "required": true,
-          "scheme": "bearer",
-          "context": "organization"
-        },
-        "x-organization-context": {
-          "required": true,
-          "header": "x-organization-id",
-          "pathParameter": "organizationId"
-        },
-        "x-permissions": [
-          "task.update"
-        ]
-      },
-      "delete": {
-        "description": "Author-only. Soft-deletes the comment and hides its attachments.",
-        "operationId": "CommentController_remove",
-        "parameters": [
-          {
-            "name": "commentId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-organization-id",
-            "in": "header",
-            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The comment is gone from every list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentMessageResponseDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, invalid or expired access token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied, or you are not a member of the active organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource not found, or it belongs to another organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a comment",
-        "tags": [
-          "comments"
-        ],
-        "x-auth": {
-          "required": true,
-          "scheme": "bearer",
-          "context": "organization"
-        },
-        "x-organization-context": {
-          "required": true,
-          "header": "x-organization-id",
-          "pathParameter": "organizationId"
-        },
-        "x-permissions": [
-          "task.update"
         ]
       }
     },
@@ -20162,6 +20362,85 @@
           "required": false
         }
       }
+    },
+    "/workspace": {
+      "get": {
+        "description": "Everything needed to render the application shell in one call: the signed-in user, the organizations they can switch to, the active organization, the caller’s role and permissions in it, the subscription with usage, the unread notification count and the work assigned to the caller. The individual routes remain authoritative; this is the connected view of them.",
+        "operationId": "WorkspaceController_get",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The workspace context of the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bootstrap the authenticated workspace",
+        "tags": [
+          "workspace"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        }
+      }
     }
   },
   "info": {
@@ -20189,6 +20468,10 @@
     {
       "name": "organizations",
       "description": "Organization CRUD within the subscription"
+    },
+    {
+      "name": "workspace",
+      "description": "The authenticated application shell: user, organizations, membership, subscription, notifications and assigned work in one call"
     },
     {
       "name": "roles",
@@ -20263,6 +20546,10 @@
       "description": "Your own in-app notifications, and the unread count behind the bell"
     },
     {
+      "name": "chat",
+      "description": "Chat rooms and messages: the organization channel, scoped rooms, direct conversations and read markers"
+    },
+    {
       "name": "time-entries",
       "description": "Time entries tracking work"
     },
@@ -20273,10 +20560,6 @@
     {
       "name": "dashboard",
       "description": "Dashboard metrics and summaries"
-    },
-    {
-      "name": "chat",
-      "description": "Organization, project, task, subtask and direct conversations with unread tracking"
     },
     {
       "name": "settings",
@@ -21316,6 +21599,7 @@
                 "time_complexity.update",
                 "time_complexity.delete",
                 "dashboard.view",
+                "analytics.view",
                 "settings.view",
                 "settings.update",
                 "chat.view",
@@ -21441,6 +21725,7 @@
                 "time_complexity.update",
                 "time_complexity.delete",
                 "dashboard.view",
+                "analytics.view",
                 "settings.view",
                 "settings.update",
                 "chat.view",
@@ -22466,13 +22751,18 @@
               "department",
               "human_resource",
               "client",
+              "badge",
               "comment",
               "employee",
               "leave_type",
               "leave_request",
               "performance_review",
+              "time_entry",
               "chat_channel",
-              "chat_message"
+              "chat_message",
+              "invitation",
+              "role",
+              "member"
             ],
             "example": "task"
           },
@@ -22496,7 +22786,8 @@
               "commented",
               "moved",
               "completed",
-              "reopened"
+              "reopened",
+              "accepted"
             ],
             "example": "created"
           },
@@ -24141,6 +24432,148 @@
           "totalPages"
         ]
       },
+      "ProjectOverviewCountsDto": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "number",
+            "example": 12
+          },
+          "completedTasks": {
+            "type": "number",
+            "example": 5
+          },
+          "subtasks": {
+            "type": "number",
+            "example": 34
+          },
+          "completedSubtasks": {
+            "type": "number",
+            "example": 18
+          },
+          "milestones": {
+            "type": "number",
+            "example": 3
+          },
+          "activeHumanResources": {
+            "type": "number",
+            "example": 4,
+            "description": "People currently active on the project register."
+          },
+          "timeEntries": {
+            "type": "number",
+            "example": 120
+          },
+          "totalSeconds": {
+            "type": "number",
+            "example": 194400,
+            "description": "Seconds logged against the project, including any timer still running."
+          }
+        },
+        "required": [
+          "tasks",
+          "completedTasks",
+          "subtasks",
+          "completedSubtasks",
+          "milestones",
+          "activeHumanResources",
+          "timeEntries",
+          "totalSeconds"
+        ]
+      },
+      "MilestoneResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "d1e2f3a4-5b6c-4d7e-8f90-a1b2c3d4e5f6"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
+          },
+          "name": {
+            "type": "string",
+            "example": "MVP release"
+          },
+          "description": {
+            "type": "object",
+            "example": "The integrations that make it usable."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "example": "planned"
+          },
+          "dueDate": {
+            "type": "object",
+            "example": "2026-11-01",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ProjectOverviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectResponseDto"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ProjectOverviewCountsDto"
+          },
+          "milestones": {
+            "description": "Milestones of the project, nearest target date first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MilestoneResponseDto"
+            }
+          },
+          "humanResources": {
+            "description": "The project register, active and inactive entries included so history stays visible.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HumanResourceResponseDto"
+            }
+          },
+          "recentActivity": {
+            "description": "The ten most recent events recorded against the project.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityResponseDto"
+            }
+          }
+        },
+        "required": [
+          "project",
+          "counts",
+          "milestones",
+          "humanResources",
+          "recentActivity"
+        ]
+      },
       "UpdateProjectDto": {
         "type": "object",
         "properties": {
@@ -24548,6 +24981,260 @@
           "totalPages"
         ]
       },
+      "TaskWorkspaceProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
+          },
+          "name": {
+            "type": "string",
+            "example": "Delivery Platform Rollout"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
+        ]
+      },
+      "SubtaskResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "a2b3c4d5-6e7f-4a8b-9c0d-1e2f3a4b5c6d"
+          },
+          "taskId": {
+            "type": "string",
+            "example": "d1e2f3a4-5b6c-4d7e-8f90-a1b2c3d4e5f6"
+          },
+          "assignedTo": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "assignee": {
+            "nullable": true,
+            "description": "The assignee, resolved. Null when unassigned, or when the read did not join the relation -- `assignedTo` is the durable fact.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssigneeSummaryDto"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Write invoice templates"
+          },
+          "description": {
+            "type": "object",
+            "example": "Cover all invoice templates."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done",
+              "cancelled"
+            ],
+            "example": "todo"
+          },
+          "dueDate": {
+            "type": "object",
+            "example": "2026-10-20",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-09-30T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "title",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TaskWorkspaceCountsDto": {
+        "type": "object",
+        "properties": {
+          "subtasks": {
+            "type": "number",
+            "example": 6
+          },
+          "completedSubtasks": {
+            "type": "number",
+            "example": 4
+          },
+          "timeEntries": {
+            "type": "number",
+            "example": 22
+          },
+          "totalSeconds": {
+            "type": "number",
+            "example": 82800,
+            "description": "Seconds logged against the task, timers included."
+          }
+        },
+        "required": [
+          "subtasks",
+          "completedSubtasks",
+          "timeEntries",
+          "totalSeconds"
+        ]
+      },
+      "CommentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "object"
+          },
+          "taskId": {
+            "type": "object"
+          },
+          "subtaskId": {
+            "type": "object"
+          },
+          "author": {
+            "type": "object"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "editedAt": {
+            "type": "object"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author",
+          "authorId",
+          "content",
+          "attachments",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TaskWorkspaceCommentsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 9
+          },
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 20
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "TaskWorkspaceResponseDto": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/TaskResponseDto"
+          },
+          "project": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskWorkspaceProjectDto"
+              }
+            ]
+          },
+          "subtasks": {
+            "description": "Subtasks of the task, oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtaskResponseDto"
+            }
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TaskWorkspaceCountsDto"
+          },
+          "recentActivity": {
+            "description": "The ten most recent events recorded against the task.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityResponseDto"
+            }
+          },
+          "comments": {
+            "description": "The first page of comments on the task, oldest first.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskWorkspaceCommentsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "task",
+          "subtasks",
+          "counts",
+          "recentActivity",
+          "comments"
+        ]
+      },
       "UpdateTaskDto": {
         "type": "object",
         "properties": {
@@ -24651,60 +25338,6 @@
         "required": [
           "projectId",
           "name"
-        ]
-      },
-      "MilestoneResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "d1e2f3a4-5b6c-4d7e-8f90-a1b2c3d4e5f6"
-          },
-          "projectId": {
-            "type": "string",
-            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
-          },
-          "name": {
-            "type": "string",
-            "example": "MVP release"
-          },
-          "description": {
-            "type": "object",
-            "example": "The integrations that make it usable."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "planned",
-              "in_progress",
-              "completed",
-              "cancelled"
-            ],
-            "example": "planned"
-          },
-          "dueDate": {
-            "type": "object",
-            "example": "2026-11-01",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "example": "2026-09-30T10:00:00.000Z"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "example": "2026-09-30T10:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "projectId",
-          "name",
-          "status",
-          "createdAt",
-          "updatedAt"
         ]
       },
       "MilestonePage": {
@@ -24946,73 +25579,87 @@
           "updated"
         ]
       },
-      "SubtaskResponseDto": {
+      "CommentPage": {
         "type": "object",
         "properties": {
-          "id": {
+          "items": {
+            "description": "Records of the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total matching records"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page (1-based)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "CreateCommentDto": {
+        "type": "object",
+        "properties": {
+          "content": {
             "type": "string",
-            "example": "a2b3c4d5-6e7f-4a8b-9c0d-1e2f3a4b5c6d"
+            "example": "Great work, let us adjust the colors."
           },
           "taskId": {
             "type": "string",
             "example": "d1e2f3a4-5b6c-4d7e-8f90-a1b2c3d4e5f6"
           },
-          "assignedTo": {
-            "type": "object",
-            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
-            "nullable": true
-          },
-          "assignee": {
-            "nullable": true,
-            "description": "The assignee, resolved. Null when unassigned, or when the read did not join the relation -- `assignedTo` is the durable fact.",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AssigneeSummaryDto"
-              }
-            ]
-          },
-          "title": {
+          "subtaskId": {
             "type": "string",
-            "example": "Write invoice templates"
-          },
-          "description": {
-            "type": "object",
-            "example": "Cover all invoice templates."
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "todo",
-              "in_progress",
-              "done",
-              "cancelled"
-            ],
-            "example": "todo"
-          },
-          "dueDate": {
-            "type": "object",
-            "example": "2026-10-20",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "example": "2026-09-30T10:00:00.000Z"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "example": "2026-09-30T10:00:00.000Z"
+            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
           }
         },
         "required": [
-          "id",
-          "taskId",
-          "title",
-          "status",
-          "createdAt",
-          "updatedAt"
+          "content"
+        ]
+      },
+      "UpdateCommentDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "example": "Updated comment text."
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "CommentMessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Comment deleted"
+          }
+        },
+        "required": [
+          "message"
         ]
       },
       "SubtaskPage": {
@@ -25718,141 +26365,6 @@
         },
         "required": [
           "lastReadAt"
-        ]
-      },
-      "CommentResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "projectId": {
-            "type": "object"
-          },
-          "taskId": {
-            "type": "object"
-          },
-          "subtaskId": {
-            "type": "object"
-          },
-          "author": {
-            "type": "object"
-          },
-          "authorId": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "editedAt": {
-            "type": "object"
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "author",
-          "authorId",
-          "content",
-          "attachments",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CommentPage": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "Records of the current page",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CommentResponseDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "example": 42,
-            "description": "Total matching records"
-          },
-          "page": {
-            "type": "number",
-            "example": 1,
-            "description": "Current page (1-based)"
-          },
-          "limit": {
-            "type": "number",
-            "example": 20,
-            "description": "Items per page"
-          },
-          "totalPages": {
-            "type": "number",
-            "example": 3,
-            "description": "Total number of pages"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "limit",
-          "totalPages"
-        ]
-      },
-      "CreateCommentDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string",
-            "example": "Great work, let us adjust the colors."
-          },
-          "taskId": {
-            "type": "string",
-            "example": "d1e2f3a4-5b6c-4d7e-8f90-a1b2c3d4e5f6"
-          },
-          "subtaskId": {
-            "type": "string",
-            "example": "b6f0e2a1-9f2a-4a6f-8f1e-2c9a5b7d1e33"
-          }
-        },
-        "required": [
-          "content"
-        ]
-      },
-      "UpdateCommentDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string",
-            "example": "Updated comment text."
-          }
-        },
-        "required": [
-          "content"
-        ]
-      },
-      "CommentMessageResponseDto": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Comment deleted"
-          }
-        },
-        "required": [
-          "message"
         ]
       },
       "AttachmentResponseDto": {
@@ -27092,6 +27604,109 @@
         },
         "required": [
           "password"
+        ]
+      },
+      "WorkspaceSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "nullable": true,
+            "description": "The caller’s subscription, or null when none has been started yet.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionResponseDto"
+              }
+            ]
+          },
+          "usage": {
+            "description": "Usage against every plan limit. Empty without a subscription.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanUsageDto"
+            }
+          }
+        },
+        "required": [
+          "usage"
+        ]
+      },
+      "WorkspaceNotificationsDto": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "number",
+            "example": 3,
+            "description": "Notifications the caller has not read in this organization."
+          }
+        },
+        "required": [
+          "unread"
+        ]
+      },
+      "WorkspaceMyWorkDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 7,
+            "description": "How many subtasks are assigned to the caller in total."
+          },
+          "items": {
+            "description": "The caller’s assigned subtasks, soonest deadline first. Each row carries its task and project.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignedSubtaskResponseDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ]
+      },
+      "WorkspaceResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserResponseDto"
+          },
+          "activeOrganization": {
+            "$ref": "#/components/schemas/OrganizationResponseDto"
+          },
+          "organizations": {
+            "description": "Every organization the caller can switch to.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationResponseDto"
+            }
+          },
+          "membership": {
+            "description": "The role the caller acts with in the active organization, and exactly what it may do right now.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyMembershipResponseDto"
+              }
+            ]
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/WorkspaceSubscriptionDto"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/WorkspaceNotificationsDto"
+          },
+          "myWork": {
+            "$ref": "#/components/schemas/WorkspaceMyWorkDto"
+          }
+        },
+        "required": [
+          "user",
+          "activeOrganization",
+          "organizations",
+          "membership",
+          "subscription",
+          "notifications",
+          "myWork"
         ]
       }
     }

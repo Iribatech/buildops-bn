@@ -17,6 +17,8 @@ import { Task } from '../task/task.entity.js';
 import { Subtask } from '../subtask/subtask.entity.js';
 import { TimeEntry } from '../time-entry/time-entry.entity.js';
 import { Milestone } from '../milestone/milestone.entity.js';
+import { HumanResource } from '../human-resource/human-resource.entity.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { Project } from './project.entity.js';
 import {
   CASCADE_CONFIRMATION_REQUIRED,
@@ -30,6 +32,7 @@ import {
   ProjectQueryDto,
   UpdateProjectDto,
 } from './dto/project.dto.js';
+import type { ProjectOverviewResponseDto } from './dto/project-overview.dto.js';
 
 /**
  * Projects belong to an organization and are connected to a client (spec §9).
@@ -50,7 +53,10 @@ export class ProjectService {
     private readonly timeEntryRepo: Repository<TimeEntry>,
     @InjectRepository(Milestone)
     private readonly milestoneRepo: Repository<Milestone>,
+    @InjectRepository(HumanResource)
+    private readonly humanResourceRepo: Repository<HumanResource>,
     private readonly planLimits: PlanLimitService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(
@@ -87,6 +93,75 @@ export class ProjectService {
     }
 
     return project;
+  }
+
+  /**
+   * The project screen in one response.
+   *
+   * Every part is read through the repository or service that owns it, scoped
+   * to the organization, so the overview is the same data the individual
+   * endpoints return rather than a parallel query that can drift.
+   */
+  async overview(
+    organizationId: string,
+    projectId: string,
+  ): Promise<ProjectOverviewResponseDto> {
+    const project = await this.findOne(organizationId, projectId);
+
+    const tasks = await this.taskRepo.find({ where: { projectId } });
+    const taskIds = tasks.map((task) => task.id);
+    const subtasks = taskIds.length
+      ? await this.subtaskRepo.find({ where: { taskId: In(taskIds) } })
+      : [];
+    const subtaskIds = subtasks.map((subtask) => subtask.id);
+
+    const [entries, milestones, humanResources, recentActivity] =
+      await Promise.all([
+        subtaskIds.length
+          ? this.timeEntryRepo.find({ where: { subtaskId: In(subtaskIds) } })
+          : Promise.resolve([]),
+        this.milestoneRepo.find({
+          where: { organizationId, projectId },
+          order: { dueDate: 'ASC', createdAt: 'DESC' },
+        }),
+        this.humanResourceRepo.find({
+          where: { organizationId, projectId },
+          relations: { employee: true },
+          order: { name: 'ASC' },
+        }),
+        this.activity.listForProject(organizationId, projectId, {
+          page: 1,
+          limit: 10,
+        }),
+      ]);
+
+    const now = new Date();
+
+    return {
+      project: project.toResponse(),
+      counts: {
+        tasks: tasks.length,
+        completedTasks: tasks.filter((task) => task.status === 'done').length,
+        subtasks: subtasks.length,
+        completedSubtasks: subtasks.filter(
+          (subtask) => subtask.status === 'done',
+        ).length,
+        milestones: milestones.length,
+        activeHumanResources: humanResources.filter(
+          (humanResource) => humanResource.status === 'active',
+        ).length,
+        timeEntries: entries.length,
+        totalSeconds: entries.reduce(
+          (sum, entry) => sum + entry.durationSeconds(now),
+          0,
+        ),
+      },
+      milestones: milestones.map((milestone) => milestone.toResponse()),
+      humanResources: humanResources.map((humanResource) =>
+        humanResource.toResponse(),
+      ),
+      recentActivity: recentActivity.items.map((item) => item.toResponse()),
+    };
   }
 
   async create(

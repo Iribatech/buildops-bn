@@ -35,6 +35,7 @@ import {
   ProjectResponseDto,
   UpdateProjectDto,
 } from './dto/project.dto.js';
+import { ProjectOverviewResponseDto } from './dto/project-overview.dto.js';
 import {
   CASCADE_CONFIRMATION,
   ConfirmCascadeDto,
@@ -151,6 +152,30 @@ export class ProjectController {
     );
 
     return restored.toResponse();
+  }
+
+  @Get(':projectId/overview')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
+  @ApiOperation({
+    summary: 'Get a project with its work, staffing and recent activity',
+    description:
+      'The project screen in one call: the project, task and subtask counts, ' +
+      'logged time, milestones, the project human-resource register and the ' +
+      'ten most recent activity events. Each part is scoped to the active ' +
+      'organization and read through the module that owns it.',
+  })
+  @ApiResponse({
+    description: 'The project, its counts and the records that hang off it',
+    status: 200,
+    type: ProjectOverviewResponseDto,
+  })
+  @ApiErrors(403, 404)
+  async overview(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<ProjectOverviewResponseDto> {
+    return this.projectService.overview(auth.organizationId, projectId);
   }
 
   @Get(':projectId')

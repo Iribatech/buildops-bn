@@ -22,8 +22,8 @@ generated OpenAPI document (see [Live spec](#1-live-spec)).
 Every route below lives under the global prefix `api/v1` — include it in your
 `baseURL` so you never hard-code it in a path. `PORT` overrides `3000`.
 
-The document covers **192 operations across 129 paths** in 28 tag groups —
-`auth`, `plans`, `subscription`, `billing`, `organizations`, `roles`,
+The document covers **195 operations across 132 paths** in 29 tag groups —
+`auth`, `plans`, `subscription`, `billing`, `organizations`, `workspace`, `roles`,
 `invitations`, `teams`, `departments`, `employees`, `leave`,
 `performance-reviews`, `human-resources`, `clients`, `projects`, `badges`,
 `tasks`, `subtasks`, `milestones`, `activity`, `comments`, `attachments`,
@@ -893,6 +893,7 @@ membership yet, and usually no account either.
 | `DELETE` | `/subscription`       | —                     | `200 { message }`                        | `404`               |
 | `GET`    | `/subscription/usage` | —                     | `200 PlanUsageDto[]`                     | `404`               |
 | `GET`    | `/organizations`      | `?page&limit`         | `200 OrganizationPage`                   | `404`               |
+| `GET`    | `/workspace`          | —                     | `200 WorkspaceResponseDto`               | `401`               |
 | `POST`   | `/organizations`      | `{ name, status? }`   | `201 OrganizationResponseDto`            | `400`, `404`        |
 | `GET`    | `/settings/account`   | —                     | `200 AccountResponseDto`                 | `401`               |
 | `PATCH`  | `/settings/account/password` | `{ currentPassword, newPassword }` | `200 AccountResponseDto`   | `400`, `401`        |
@@ -1147,6 +1148,11 @@ There is no delete route.
 | Projects | `GET /projects` `project.view` | `POST /projects` `project.create` | `GET /projects/{projectId}` `project.view` | `PATCH` `project.update` | `DELETE` `project.delete` |
 | Badges   | `GET /badges` `badge.view`     | `POST /badges` `badge.create`     | `GET /badges/{badgeId}` `badge.view`       | `PATCH` `badge.update`   | `DELETE` `badge.delete`   |
 
+`GET /projects/{projectId}/overview` (`project.view`) returns the project, its
+counts, milestones, staffing and the ten most recent activity events in one
+response — use it for the project screen instead of stitching four calls
+together. The individual endpoints remain authoritative for paging deeper.
+
 Each also answers `GET /{resource}/trash` (`*.view`) and
 `POST /{resource}/{id}/restore` (`*.update`). `DELETE /projects/{projectId}`
 additionally requires `?confirm=cascade` — see
@@ -1170,6 +1176,7 @@ subtask and time entry that went with it.
 | `GET`    | `/tasks` `?page&limit&status&priority&projectId&teamId&badgeId` | `task.view`                               | `403`               |
 | `POST`   | `/tasks`                                                        | `task.create`                             | `400`, `403`, `404` |
 | `GET`    | `/tasks/{taskId}`                                               | `task.view`                               | `403`, `404`        |
+| `GET`    | `/tasks/{taskId}/workspace`                                     | `task.view`                               | `403`, `404`        |
 | `PATCH`  | `/tasks/{taskId}`                                               | `task.update`                             | `400`, `403`, `404` |
 | `DELETE` | `/tasks/{taskId}` `?confirm=cascade`                            | `task.delete`                             | `400`, `403`, `404`, `409` |
 | `GET`    | `/tasks/trash`                                                  | `task.view`                               | `403`               |
@@ -1181,6 +1188,11 @@ subtask and time entry that went with it.
 | `DELETE` | `/tasks/{taskId}/subtasks/{subtaskId}` `?confirm=cascade`       | `subtask.delete`                          | `400`, `403`, `404`, `409` |
 | `GET`    | `/tasks/{taskId}/subtasks/trash`                                | `subtask.view`                            | `403`, `404`        |
 | `POST`   | `/tasks/{taskId}/subtasks/{subtaskId}/restore`                  | `subtask.update`                          | `403`, `404`, `409` |
+
+`GET /tasks/{taskId}/workspace` returns the task, its project, its subtasks,
+time totals, the ten most recent activity events and the first page of comments
+in one response — the payload behind the task screen. Page the standalone
+subtask, comment and activity endpoints for more.
 
 Time is logged against **subtasks**, not tasks: `POST /time-entries` requires a
 `subtaskId`. `POST` on subtasks needs both `subtask.create` and

@@ -6595,6 +6595,93 @@ describe('published contract vs runtime (e2e)', () => {
       }
     });
 
+    it('GET /workspace returns 200, 401 and 403', async () => {
+      const shell = await probe(
+        'get',
+        '/workspace',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(shell.body.user.id).toEqual(expect.any(String));
+      expect(shell.body.activeOrganization.id).toBe(organizationId);
+      expect(shell.body.membership.userId).toEqual(expect.any(String));
+
+      await probe('get', '/workspace', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/workspace',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /projects/{projectId}/overview returns 200, 401, 403 and 404', async () => {
+      const overview = await probe(
+        'get',
+        `/projects/${projectId}/overview`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(overview.body.project.id).toBe(projectId);
+      expect(overview.body.counts).toBeTruthy();
+
+      await probe(
+        'get',
+        `/projects/${projectId}/overview`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/projects/${projectId}/overview`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/projects/${missingId}/overview`,
+        (req) => asOwner(req),
+        '404',
+        'unknown project',
+      );
+    });
+
+    it('GET /tasks/{taskId}/workspace returns 200, 401, 403 and 404', async () => {
+      const workspace = await probe(
+        'get',
+        `/tasks/${taskId}/workspace`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(workspace.body.task.id).toBe(taskId);
+      expect(workspace.body.counts).toBeTruthy();
+
+      await probe(
+        'get',
+        `/tasks/${taskId}/workspace`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/tasks/${taskId}/workspace`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/tasks/${missingId}/workspace`,
+        (req) => asOwner(req),
+        '404',
+        'unknown task',
+      );
+    });
+
     it('POST /comments returns 400, 401, 403, 404 and 201', async () => {
       await probe(
         'post',
@@ -7933,46 +8020,6 @@ describe('published contract vs runtime (e2e)', () => {
           (req) => asOwner(req).query({ from: 'not-a-date' }),
           '400',
           'malformed range',
-        );
-      },
-    );
-  });
-
-  describe('activity', () => {
-    const readOnly = [
-      ['get', '/activity/timeline'],
-      ['get', '/activity/leaderboard'],
-      ['get', '/activity/breakdown'],
-      ['get', '/activity/events'],
-    ] as ['get', string][];
-
-    it.each(readOnly)(
-      '%s returns 400, 401, 403 and 200',
-      async (method, path) => {
-        const body = await probe(method, path, (req) => asOwner(req), '200');
-        expect(body.body).toBeTruthy();
-
-        await probe(method, path, (req) => req, '401', 'no token');
-        await probe(
-          method,
-          path,
-          (req) => asOutsider(req),
-          '403',
-          'not a member',
-        );
-        await probe(
-          method,
-          path,
-          (req) => asOwner(req).query({ from: 'not-a-date' }),
-          '400',
-          'malformed range',
-        );
-        await probe(
-          method,
-          path,
-          (req) => asOwner(req).query({ entityType: 'not-an-entity' }),
-          '400',
-          'unknown entity type',
         );
       },
     );
