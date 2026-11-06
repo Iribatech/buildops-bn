@@ -1,6 +1,58 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/": {
+      "get": {
+        "description": "Returns the public name, version and documentation links of this API.",
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API information"
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "API info",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Reports whether the API process is running.",
+        "operationId": "AppController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/auth/register": {
       "post": {
         "description": "Creates a user account and triggers a verification email. No access token is issued until the email is verified. Outside production the response also carries `verificationToken`/`verificationLink` and the `emailSent`/`emailError` outcome of the send, so a local flow can run without a mail server.",
@@ -4950,6 +5002,204 @@
         ]
       }
     },
+    "/me/leave": {
+      "get": {
+        "description": "The signed-in member’s own employee record, active leave catalogue, current-year balances and latest requests. The employee is resolved from the authenticated account, so no employee id is accepted from the client.",
+        "operationId": "MyLeaveController_overview",
+        "parameters": [
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Calendar year, defaults to the current year",
+            "schema": {
+              "minimum": 2000,
+              "maximum": 2100,
+              "example": 2026,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My leave overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyLeaveResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my leave",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        }
+      },
+      "post": {
+        "description": "Creates a pending request for the signed-in member’s own employee record. The employee cannot be chosen by the client; HR still approves or rejects the request.",
+        "operationId": "MyLeaveController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMyLeaveRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request my leave",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        }
+      }
+    },
     "/employees/{employeeId}/leave-balances": {
       "get": {
         "description": "Entitlement, approved, pending and remaining days per leave type for a calendar year. Approved days spanning the year boundary are counted only inside that year.",
@@ -6701,6 +6951,15 @@
               "maximum": 100,
               "default": 20,
               "type": "number"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by department",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -14930,7 +15189,7 @@
         ]
       },
       "post": {
-        "description": "Creates a subtask. When assignedTo is set, the user must be an active member of the organization the task belongs to. Omit it to leave the subtask in the unassigned backlog.",
+        "description": "Creates a subtask. On a teamed task, only the team lead or a project manager may split the work, and an assignee must be an active member of that team. Omit assignedTo to leave the subtask in the unassigned backlog.",
         "operationId": "SubtaskController_createSubtask",
         "parameters": [
           {
@@ -20444,11 +20703,15 @@
     }
   },
   "info": {
-    "title": "OPS API",
+    "title": "OfficeCore API",
     "description": "Multi-tenant operations API.\n\nAuthentication is a stateless bearer JWT sent in the `Authorization` header.\nOrganization-scoped routes additionally require the active organization in the\n`x-organization-id` header, or in an `:organizationId` path segment, which\ntakes precedence when both are sent; your membership in that organization is\nverified on every call and the permissions of your role decide what is allowed.\n\nRecord collections are paginated with the `page` and `limit` query parameters\nand wrapped as `{ items, total, page, limit, totalPages }`. A few catalogue\nendpoints (`/plans` and `/subscription/usage`) answer with a plain JSON array\ninstead.\n\nEvery response body is JSON, errors included. An error always carries a\n`statusCode` and a `message`, and nothing else: `message` is a single string\nfor a business error and a string array when several fields failed validation.\nA third `error` key names the status, but it is absent on a rejected or\nexpired JWT (401) and on every 429, so branch on `statusCode` rather than on\n`error`. There is no `timestamp` and no `path`.\n\nRate limiting is global, so every operation — public ones included — documents a\n`429` alongside its other errors.",
     "version": "1.0"
   },
   "tags": [
+    {
+      "name": "health",
+      "description": "Liveness and public API information"
+    },
     {
       "name": "auth",
       "description": "Registration, email verification, login, password reset, profile"
@@ -22288,6 +22551,107 @@
           }
         }
       },
+      "MyLeaveTypeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "name": {
+            "type": "string",
+            "example": "Annual Leave"
+          },
+          "paid": {
+            "type": "boolean",
+            "example": true
+          },
+          "defaultEntitlementDays": {
+            "type": "number",
+            "example": 20
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "paid",
+          "defaultEntitlementDays"
+        ]
+      },
+      "MyLeaveResponseDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "employeeName": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Operations",
+            "nullable": true
+          },
+          "year": {
+            "type": "number",
+            "example": 2026
+          },
+          "balances": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "leaveTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyLeaveTypeDto"
+            }
+          },
+          "requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaveRequestResponseDto"
+            }
+          }
+        },
+        "required": [
+          "employeeId",
+          "employeeName",
+          "year",
+          "balances",
+          "leaveTypes",
+          "requests"
+        ]
+      },
+      "CreateMyLeaveRequestDto": {
+        "type": "object",
+        "properties": {
+          "leaveTypeId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-12-21"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Family holiday."
+          }
+        },
+        "required": [
+          "leaveTypeId",
+          "startDate",
+          "endDate"
+        ]
+      },
       "LeaveBalanceResponseDto": {
         "type": "object",
         "properties": {
@@ -22911,6 +23275,16 @@
             "type": "string",
             "format": "uuid",
             "description": "The role the invitee receives on acceptance: a `roles` row of this organization that nobody holds yet. Naming it here is what lets a role an administrator built travel with the invitation, instead of the invitee receiving whichever built-in template shares its name. Must belong to this organization and must be unassigned."
+          },
+          "departmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The department the invitee is being hired into. Informational — carried in the invitation email and available to HR for pre-filling the employee record, but does not gate acceptance."
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The team the invitee is being assigned to. Informational — carried in the invitation email and available to HR for pre-filling team membership, but does not gate acceptance."
           }
         },
         "required": [
@@ -22935,6 +23309,11 @@
           "templateKey": {
             "type": "string",
             "example": "developer"
+          },
+          "roleId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The role row this invitation grants on acceptance, when the inviter named one."
           },
           "roleName": {
             "type": "string",
@@ -22971,6 +23350,16 @@
             "format": "date-time",
             "type": "string",
             "example": "2026-10-06T09:00:00.000Z"
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance (HR context)."
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance (HR context)."
           },
           "invitationToken": {
             "type": "string",
@@ -23019,6 +23408,11 @@
             "type": "string",
             "example": "developer"
           },
+          "roleId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The role row this invitation grants on acceptance, when the inviter named one."
+          },
           "roleName": {
             "type": "string",
             "example": "Developer"
@@ -23054,6 +23448,16 @@
             "format": "date-time",
             "type": "string",
             "example": "2026-10-06T09:00:00.000Z"
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance (HR context)."
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance (HR context)."
           }
         },
         "required": [
@@ -23116,6 +23520,24 @@
             "type": "boolean",
             "example": false,
             "description": "Whether an account already exists for this address. False is the answer that makes the next step ask for a name and a password."
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance, when chosen."
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Delivery"
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance, when chosen."
+          },
+          "teamName": {
+            "type": "object",
+            "example": "Structures"
           }
         },
         "required": [
@@ -23213,6 +23635,27 @@
             "type": "string",
             "example": "Services and integrations squad."
           },
+          "departmentId": {
+            "type": "string",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "description": "Department this team belongs to"
+          },
+          "leadUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member who leads this team"
+          },
+          "memberUserIds": {
+            "example": [
+              "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+              "7e8f9a0b-1c2d-4e3f-8a4b-5c6d7e8f9a0b"
+            ],
+            "description": "Active organization members to add when the team is created. The lead is added automatically.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -23254,6 +23697,26 @@
               "archived"
             ],
             "example": "active"
+          },
+          "departmentId": {
+            "type": "object",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Preconstruction",
+            "nullable": true
+          },
+          "leadUserId": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "leadName": {
+            "type": "object",
+            "example": "Aline Uwase",
+            "nullable": true
           },
           "createdAt": {
             "format": "date-time",
@@ -23356,6 +23819,16 @@
               "inactive",
               "archived"
             ]
+          },
+          "departmentId": {
+            "type": "string",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "description": "Move the team to another department"
+          },
+          "leadUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Replace the team lead"
           }
         }
       },
@@ -23504,6 +23977,11 @@
           "description": {
             "type": "string",
             "example": "Estimating, bid preparation, and preconstruction planning."
+          },
+          "headUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member accountable for this department"
           }
         },
         "required": [
@@ -23537,6 +24015,16 @@
               "inactive"
             ],
             "example": "active"
+          },
+          "headUserId": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "headName": {
+            "type": "object",
+            "example": "Aline Uwase",
+            "nullable": true
           },
           "createdAt": {
             "format": "date-time",
@@ -23607,6 +24095,11 @@
           "description": {
             "type": "string",
             "example": "Estimating, bid preparation, and preconstruction planning."
+          },
+          "headUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member accountable for this department"
           }
         }
       },

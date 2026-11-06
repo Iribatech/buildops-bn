@@ -30,4 +30,22 @@ export class CreateInvitationDto {
   @IsOptional()
   @IsUUID()
   roleId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The department the invitee is being hired into. Informational — carried in the invitation email and available to HR for pre-filling the employee record, but does not gate acceptance.',
+  })
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The team the invitee is being assigned to. Informational — carried in the invitation email and available to HR for pre-filling team membership, but does not gate acceptance.',
+  })
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
 }

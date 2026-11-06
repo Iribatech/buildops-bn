@@ -30,6 +30,7 @@ import { LeaveService } from './leave.service.js';
 import {
   CreateLeaveRequestDto,
   CreateLeaveTypeDto,
+  CreateMyLeaveRequestDto,
   LeaveBalanceQueryDto,
   LeaveBalanceResponseDto,
   LeaveDecisionDto,
@@ -37,6 +38,7 @@ import {
   LeaveRequestResponseDto,
   LeaveTypeQueryDto,
   LeaveTypeResponseDto,
+  MyLeaveResponseDto,
   UpdateLeaveRequestDto,
   UpdateLeaveTypeDto,
 } from './dto/leave.dto.js';
@@ -414,6 +416,63 @@ export class LeaveRequestController {
       auth.organizationId,
       auth.userId,
       leaveRequestId,
+      dto,
+    );
+    return request.toResponse();
+  }
+}
+
+@ApiRateLimited()
+@ApiTags('leave')
+@Protected()
+@Controller('me/leave')
+export class MyLeaveController {
+  constructor(private readonly leaveService: LeaveService) {}
+
+  @Get()
+  @OrganizationHeader()
+  @ApiOperation({
+    summary: 'Get my leave',
+    description:
+      'The signed-in member’s own employee record, active leave catalogue, current-year balances and latest requests. The employee is resolved from the authenticated account, so no employee id is accepted from the client.',
+  })
+  @ApiResponse({
+    description: 'My leave overview',
+    status: 200,
+    type: MyLeaveResponseDto,
+  })
+  @ApiErrors(404)
+  async overview(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Query() query: LeaveBalanceQueryDto,
+  ): Promise<MyLeaveResponseDto> {
+    return this.leaveService.myLeave(
+      auth.organizationId,
+      auth.userId,
+      query,
+    );
+  }
+
+  @Post()
+  @OrganizationHeader()
+  @ApiOperation({
+    summary: 'Request my leave',
+    description:
+      'Creates a pending request for the signed-in member’s own employee record. The employee cannot be chosen by the client; HR still approves or rejects the request.',
+  })
+  @ApiResponse({
+    description: 'Leave request created',
+    status: 201,
+    type: LeaveRequestResponseDto,
+  })
+  @ApiErrors(400, 404, 409)
+  async create(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Body() dto: CreateMyLeaveRequestDto,
+  ): Promise<LeaveRequestResponseDto> {
+    const request = await this.leaveService.createMyRequest(
+      auth.organizationId,
+      auth.userId,
       dto,
     );
     return request.toResponse();

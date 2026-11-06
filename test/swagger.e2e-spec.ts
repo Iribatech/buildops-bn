@@ -465,7 +465,7 @@ describe('Swagger documentation (e2e)', () => {
 
       expect(res.headers['content-type']).toContain('application/json');
 
-      expect(doc.info.title).toBe('OPS API');
+      expect(doc.info.title).toBe('OfficeCore API');
 
       expect(doc.openapi).toBeDefined();
     });

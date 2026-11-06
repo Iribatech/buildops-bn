@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, IsUUID, Length } from 'class-validator';
 import { DEPARTMENT_STATUSES } from '../../common/enums.js';
 
 export class CreateDepartmentDto {
@@ -14,6 +14,14 @@ export class CreateDepartmentDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    description: 'Active organization member accountable for this department',
+  })
+  @IsOptional()
+  @IsUUID()
+  headUserId?: string;
 }
 
 export class UpdateDepartmentDto {
@@ -29,6 +37,14 @@ export class UpdateDepartmentDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    description: 'Active organization member accountable for this department',
+  })
+  @IsOptional()
+  @IsUUID()
+  headUserId?: string;
 }
 
 export class DepartmentResponseDto {
@@ -49,6 +65,15 @@ export class DepartmentResponseDto {
 
   @ApiProperty({ enum: DEPARTMENT_STATUSES, example: 'active' })
   status: string;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    nullable: true,
+  })
+  headUserId: string | null;
+
+  @ApiPropertyOptional({ example: 'Aline Uwase', nullable: true })
+  headName: string | null;
 
   @ApiProperty({ example: '2026-09-30T10:00:00.000Z' })
   createdAt: Date;

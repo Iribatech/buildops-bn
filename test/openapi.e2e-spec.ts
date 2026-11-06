@@ -43,6 +43,9 @@ const HTTP_METHODS = ['get', 'post', 'patch', 'put', 'delete'];
  * the document and this table only ever move together.
  */
 const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
+  // Liveness and API information: public, unauthenticated.
+  ['GET', '/', ['200']],
+  ['GET', '/health', ['200']],
   // Identity: registration, verification, credentials and the session itself.
   ['POST', '/auth/register', ['201']],
   ['POST', '/auth/login', ['201']],
@@ -335,6 +338,8 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
 
 /** Operations reachable without a bearer token. */
 const PUBLIC_OPERATIONS = [
+  'GET /',
+  'GET /health',
   'POST /auth/register',
   'POST /auth/refresh',
   'POST /auth/logout',
@@ -374,7 +379,7 @@ describe('OpenAPI document (e2e)', () => {
 
   it('serves the document as JSON', () => {
     expect(document.openapi).toMatch(/^3\./);
-    expect(document.info.title).toBe('OPS API');
+    expect(document.info.title).toBe('OfficeCore API');
     expect(Object.keys(document.components.securitySchemes)).toEqual([
       'bearer',
     ]);

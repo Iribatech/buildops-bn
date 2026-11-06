@@ -260,6 +260,25 @@ export class LeaveRequestResponseDto {
   updatedAt: Date;
 }
 
+export class CreateMyLeaveRequestDto {
+  @ApiProperty({ example: '4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b' })
+  @IsUUID()
+  leaveTypeId: string;
+
+  @ApiProperty({ example: '2026-12-21' })
+  @IsDateString()
+  startDate: string;
+
+  @ApiProperty({ example: '2026-12-31' })
+  @IsDateString()
+  endDate: string;
+
+  @ApiPropertyOptional({ example: 'Family holiday.' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
 export class LeaveBalanceQueryDto {
   @ApiPropertyOptional({
     example: 2026,
@@ -295,4 +314,41 @@ export class LeaveBalanceResponseDto {
     pendingDays: number;
     remainingDays: number;
   }[];
+}
+
+export class MyLeaveTypeDto {
+  @ApiProperty({ example: '4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b' })
+  id: string;
+
+  @ApiProperty({ example: 'Annual Leave' })
+  name: string;
+
+  @ApiProperty({ example: true })
+  paid: boolean;
+
+  @ApiProperty({ example: 20 })
+  defaultEntitlementDays: number;
+}
+
+export class MyLeaveResponseDto {
+  @ApiProperty({ example: '5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e' })
+  employeeId: string;
+
+  @ApiProperty({ example: 'Jordan Ellis' })
+  employeeName: string;
+
+  @ApiPropertyOptional({ example: 'Operations', nullable: true })
+  departmentName: string | null;
+
+  @ApiProperty({ example: 2026 })
+  year: number;
+
+  @ApiProperty({ type: [Object] })
+  balances: LeaveBalanceResponseDto['balances'];
+
+  @ApiProperty({ type: [MyLeaveTypeDto] })
+  leaveTypes: MyLeaveTypeDto[];
+
+  @ApiProperty({ type: [LeaveRequestResponseDto] })
+  requests: LeaveRequestResponseDto[];
 }

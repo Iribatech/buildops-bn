@@ -91,6 +91,18 @@ export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ALL_PERMISSIONS: PermissionName[] = Object.values(PERMISSIONS);
 
+/**
+ * Permissions no role may ever be given through the role editor, whoever is
+ * editing.
+ *
+ * Deleting the organization is the one action that cannot be undone and takes
+ * the roles and permissions with it, so it stays a property of the owner row
+ * created at bootstrap rather than something that can be handed out later.
+ */
+export const NON_DELEGATABLE_PERMISSIONS: PermissionName[] = [
+  PERMISSIONS.ORGANIZATION_DELETE,
+];
+
 const viewOnly = (resource: string): PermissionName[] => [
   `${resource}.view` as PermissionName,
 ];
@@ -114,19 +126,14 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
     key: 'project_manager',
     name: 'Project Manager',
     description:
-      'Runs delivery: manages clients, projects, teams, tasks, subtasks and estimation.',
+      'Runs delivery: manages clients, projects, tasks, subtasks and estimation.',
     permissions: [
       ...viewOnly('organization'),
       ...viewOnly('member'),
       ...viewOnly('role'),
       ...viewOnly('permission'),
       ...viewOnly('team'),
-      'team.update' as PermissionName,
-      'team.member.add' as PermissionName,
-      'team.member.remove' as PermissionName,
       ...viewOnly('department'),
-      PERMISSIONS.DEPARTMENT_CREATE,
-      PERMISSIONS.DEPARTMENT_UPDATE,
       ...viewOnly('human_resource'),
       PERMISSIONS.HUMAN_RESOURCE_CREATE,
       PERMISSIONS.HUMAN_RESOURCE_UPDATE,
@@ -184,13 +191,29 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
     key: 'hr_manager',
     name: 'HR Manager',
     description:
-      'Runs the people function: employee records, departments, leave and performance reviews.',
+      'Runs the people function: employee records, departments, teams, leave and performance reviews.',
     permissions: [
       ...viewOnly('organization'),
       ...viewOnly('member'),
+      // HR brings people in, so it needs to send the invitation as well as
+      // read the roster. It deliberately does not get member.update/remove:
+      // those would let HR change or revoke somebody else's access.
+      PERMISSIONS.MEMBER_INVITE,
       ...viewOnly('department'),
       PERMISSIONS.DEPARTMENT_CREATE,
       PERMISSIONS.DEPARTMENT_UPDATE,
+      ...viewOnly('team'),
+      PERMISSIONS.TEAM_CREATE,
+      PERMISSIONS.TEAM_UPDATE,
+      PERMISSIONS.TEAM_MEMBER_ADD,
+      PERMISSIONS.TEAM_MEMBER_REMOVE,
+      // HR reads the role catalogue and may define a new operational role when
+      // the administrator has not created one yet. Creation is capped by the
+      // API to permissions the caller already holds, so this can never become
+      // a way to mint a role above HR's own access. Updating, deleting and
+      // assigning roles stay with the administrator.
+      ...viewOnly('role'),
+      PERMISSIONS.ROLE_CREATE,
       ...viewOnly('human_resource'),
       PERMISSIONS.HUMAN_RESOURCE_CREATE,
       PERMISSIONS.HUMAN_RESOURCE_UPDATE,

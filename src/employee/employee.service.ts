@@ -174,6 +174,93 @@ export class EmployeeService {
     return created;
   }
 
+  /**
+   * Creates the employee record a joined invitation promised.
+   *
+   * An invitation that names a department is an HR hire, not just an access
+   * grant, so the person should appear in the employee directory the moment
+   * they accept instead of waiting for HR to type them in again. The linked
+   * account already exists by this point and holds an active membership, which
+   * is exactly what {@link create} validates.
+   *
+   * Idempotent: an employee already linked to this account is returned as-is.
+   * A missing department on that existing row is filled in from the invitation;
+   * anything HR has already recorded is left alone. This runs after acceptance
+   * has already succeeded, so the callers treat a failure here as a warning
+   * rather than refusing the join.
+   */
+  async ensureFromInvitation(
+    organizationId: string,
+    userId: string,
+    input: {
+      name?: string | null;
+      email?: string | null;
+      departmentId?: string | null;
+    },
+  ): Promise<Employee> {
+    const department = await this.assertDepartment(
+      organizationId,
+      input.departmentId ?? undefined,
+    );
+
+    const existing = await this.employeeRepo.findOne({
+      where: { organizationId, userId },
+    });
+
+    if (existing) {
+      if (department && existing.departmentId === null) {
+        existing.departmentId = department.id;
+        existing.department = department;
+        const saved = await this.saveEmployee(existing);
+        return this.findOne(organizationId, saved.id);
+      }
+
+      return this.findOne(organizationId, existing.id);
+    }
+
+    const email = this.normalizeOptionalEmail(input.email ?? undefined);
+    const employee = this.employeeRepo.create({
+      organizationId,
+      userId,
+      employeeNumber: null,
+      name: (input.name?.trim() || email || 'New employee').slice(0, 255),
+      email,
+      personalEmail: null,
+      phone: null,
+      departmentId: department?.id ?? null,
+      department,
+      managerId: null,
+      manager: null,
+      jobTitle: null,
+      employmentType: 'full_time',
+      status: 'active',
+      hireDate: this.today(),
+      terminationDate: null,
+      dateOfBirth: null,
+      address: null,
+      emergencyContactName: null,
+      emergencyContactPhone: null,
+      emergencyContactRelationship: null,
+      annualSalary: null,
+      notes: null,
+    });
+
+    const saved = await this.saveEmployee(employee);
+    const created = await this.findOne(organizationId, saved.id);
+
+    void this.activity.log({
+      organizationId,
+      actorId: userId,
+      entityType: 'employee',
+      entityId: created.id,
+      action: 'created',
+      title: 'Employee added from invitation',
+      body: created.name,
+    });
+
+    return created;
+  }
+
   async update(
     organizationId: string,
     actorId: string,
@@ -337,6 +424,24 @@ export class EmployeeService {
    */
   async assertEmployee(organizationId: string, employeeId: string): Promise<Employee> {
     return this.findOne(organizationId, employeeId);
+  }
+
+  /**
+   * The employee record linked to a login account, if HR has created one.
+   *
+   * Self-service routes (for example requesting your own leave) must never take
+   * an employee id from the client: that would let any member act on somebody
+   * else's HR record. Resolving from the authenticated user id keeps the action
+   * tied to the person making it.
+   */
+  async findForUser(
+    organizationId: string,
+    userId: string,
+  ): Promise<Employee | null> {
+    return this.employeeRepo.findOne({
+      where: { organizationId, userId },
+      relations: { department: true },
+    });
   }
 
   private async saveEmployee(employee: Employee): Promise<Employee> {

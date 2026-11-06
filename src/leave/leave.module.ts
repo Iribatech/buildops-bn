@@ -9,6 +9,7 @@ import {
   LeaveBalanceController,
   LeaveRequestController,
   LeaveTypeController,
+  MyLeaveController,
 } from './leave.controller.js';
 import { LeaveRequest } from './leave-request.entity.js';
 import { LeaveType } from './leave-type.entity.js';
@@ -25,6 +26,7 @@ import { LeaveService } from './leave.service.js';
   controllers: [
     LeaveTypeController,
     LeaveRequestController,
+    MyLeaveController,
     LeaveBalanceController,
   ],
   providers: [LeaveService],

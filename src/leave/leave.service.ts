@@ -18,11 +18,13 @@ import { LeaveRequest } from './leave-request.entity.js';
 import {
   CreateLeaveRequestDto,
   CreateLeaveTypeDto,
+  CreateMyLeaveRequestDto,
   LeaveBalanceQueryDto,
   LeaveBalanceResponseDto,
   LeaveDecisionDto,
   LeaveRequestQueryDto,
   LeaveTypeQueryDto,
+  MyLeaveResponseDto,
   UpdateLeaveRequestDto,
   UpdateLeaveTypeDto,
 } from './dto/leave.dto.js';
@@ -602,6 +604,83 @@ export class LeaveService {
       year,
       balances,
     };
+  }
+
+  /**
+   * Everything the signed-in member needs for their own leave screen.
+   *
+   * The employee is resolved from the account rather than read from the query,
+   * so a member can only see and act on their own record. Leave types are the
+   * active catalogue because a new request may only target one of those.
+   */
+  async myLeave(
+    organizationId: string,
+    userId: string,
+    query: LeaveBalanceQueryDto,
+  ): Promise<MyLeaveResponseDto> {
+    const employee = await this.employeeService.findForUser(
+      organizationId,
+      userId,
+    );
+
+    if (!employee) {
+      throw new NotFoundException(
+        'No employee record is linked to your account. Ask HR to add you to the employee directory first.',
+      );
+    }
+
+    const year = query.year ?? new Date().getUTCFullYear();
+
+    const [balance, leaveTypes, requests] = await Promise.all([
+      this.balances(organizationId, employee.id, { year }),
+      this.leaveTypeRepo.find({
+        where: { organizationId, status: 'active' },
+        order: { name: 'ASC' },
+      }),
+      this.leaveRequestRepo.find({
+        where: { organizationId, employeeId: employee.id },
+        relations: { employee: true, leaveType: true, approver: true },
+        order: { createdAt: 'DESC' },
+        take: 20,
+      }),
+    ]);
+
+    return {
+      employeeId: employee.id,
+      employeeName: employee.name,
+      departmentName: employee.department?.name ?? null,
+      year,
+      balances: balance.balances,
+      leaveTypes: leaveTypes.map((leaveType) => ({
+        id: leaveType.id,
+        name: leaveType.name,
+        paid: leaveType.paid,
+        defaultEntitlementDays: leaveType.defaultEntitlementDays,
+      })),
+      requests: requests.map((request) => request.toResponse()),
+    };
+  }
+
+  async createMyRequest(
+    organizationId: string,
+    userId: string,
+    dto: CreateMyLeaveRequestDto,
+  ): Promise<LeaveRequest> {
+    const employee = await this.employeeService.findForUser(
+      organizationId,
+      userId,
+    );
+
+    if (!employee) {
+      throw new NotFoundException(
+        'No employee record is linked to your account. Ask HR to add you to the employee directory first.',
+      );
+    }
+
+    return this.createRequest(organizationId, userId, {
+      ...dto,
+      employeeId: employee.id,
+    });
   }
 
   // --- internals -----------------------------------------------------------

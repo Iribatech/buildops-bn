@@ -1,14 +1,20 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service.js';
+import { ApiRateLimited } from './common/decorators/api-errors.decorator.js';
 
 @ApiTags('health')
+@ApiRateLimited()
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ summary: 'API info' })
+  @ApiOperation({
+    summary: 'API info',
+    description:
+      'Returns the public name, version and documentation links of this API.',
+  })
   @ApiResponse({ status: 200, description: 'API information' })
   getHello() {
     return {
@@ -21,7 +27,10 @@ export class AppController {
   }
 
   @Get('health')
-  @ApiOperation({ summary: 'Health check' })
+  @ApiOperation({
+    summary: 'Health check',
+    description: 'Reports whether the API process is running.',
+  })
   @ApiResponse({ status: 200, description: 'Service is healthy' })
   health() {
     return {

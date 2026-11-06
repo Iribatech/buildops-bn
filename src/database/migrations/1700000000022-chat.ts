@@ -34,7 +34,7 @@ export class Chat1700000000022 implements MigrationInterface {
   name = 'Chat1700000000022';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE TABLE "chat_channels" (
+    await queryRunner.query(`CREATE TABLE IF NOT EXISTS "chat_channels" (
       "id" uuid NOT NULL DEFAULT gen_random_uuid(),
       "organization_id" uuid NOT NULL,
       "type" character varying(20) NOT NULL,
@@ -60,36 +60,36 @@ export class Chat1700000000022 implements MigrationInterface {
     )`);
 
     await queryRunner.query(
-      `CREATE INDEX "IDX_chat_channels_organization_id"
+      `CREATE INDEX IF NOT EXISTS "IDX_chat_channels_organization_id"
          ON "chat_channels" ("organization_id")`,
     );
     // One auto channel per scope, enforced by the database rather than by a
     // check-then-insert in the service.
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_chat_channels_organization"
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_chat_channels_organization"
          ON "chat_channels" ("organization_id") WHERE "type" = 'organization'`,
     );
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_chat_channels_project"
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_chat_channels_project"
          ON "chat_channels" ("project_id")
          WHERE "type" = 'project' AND "project_id" IS NOT NULL`,
     );
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_chat_channels_task"
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_chat_channels_task"
          ON "chat_channels" ("task_id")
          WHERE "type" = 'task' AND "task_id" IS NOT NULL`,
     );
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_chat_channels_subtask"
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_chat_channels_subtask"
          ON "chat_channels" ("subtask_id")
          WHERE "type" = 'subtask' AND "subtask_id" IS NOT NULL`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_chat_channels_last_message"
+      `CREATE INDEX IF NOT EXISTS "IDX_chat_channels_last_message"
          ON "chat_channels" ("organization_id", "last_message_at" DESC)`,
     );
 
-    await queryRunner.query(`CREATE TABLE "chat_messages" (
+    await queryRunner.query(`CREATE TABLE IF NOT EXISTS "chat_messages" (
       "id" uuid NOT NULL DEFAULT gen_random_uuid(),
       "organization_id" uuid NOT NULL,
       "channel_id" uuid NOT NULL,
@@ -112,15 +112,15 @@ export class Chat1700000000022 implements MigrationInterface {
     )`);
 
     await queryRunner.query(
-      `CREATE INDEX "IDX_chat_messages_channel_created"
+      `CREATE INDEX IF NOT EXISTS "IDX_chat_messages_channel_created"
          ON "chat_messages" ("channel_id", "created_at" DESC)`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_chat_messages_organization"
+      `CREATE INDEX IF NOT EXISTS "IDX_chat_messages_organization"
          ON "chat_messages" ("organization_id")`,
     );
 
-    await queryRunner.query(`CREATE TABLE "chat_channel_participants" (
+    await queryRunner.query(`CREATE TABLE IF NOT EXISTS "chat_channel_participants" (
       "channel_id" uuid NOT NULL,
       "user_id" uuid NOT NULL,
       "last_read_at" TIMESTAMP,
@@ -133,7 +133,7 @@ export class Chat1700000000022 implements MigrationInterface {
     )`);
 
     await queryRunner.query(
-      `CREATE INDEX "IDX_chat_channel_participants_user"
+      `CREATE INDEX IF NOT EXISTS "IDX_chat_channel_participants_user"
          ON "chat_channel_participants" ("user_id")`,
     );
 

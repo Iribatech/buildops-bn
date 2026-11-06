@@ -11,6 +11,8 @@ import {
 import { Organization } from '../organization/organization.entity.js';
 import { Role } from '../role/role.entity.js';
 import { User } from '../user/user.entity.js';
+import { Department } from '../department/department.entity.js';
+import { Team } from '../team/team.entity.js';
 
 /**
  * An invitation to join an organization, sent by email.
@@ -95,6 +97,30 @@ export class OrganizationInvitation {
   @Column({ name: 'accepted_at', type: 'timestamp', nullable: true })
   acceptedAt: Date | null;
 
+  /**
+   * The department the invitee is being hired into (HR context).
+   * Informational only — does not gate acceptance. SET NULL when the department
+   * is removed so the invitation history survives.
+   */
+  @Column({ name: 'department_id', type: 'uuid', nullable: true })
+  departmentId: string | null;
+
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'department_id' })
+  department: Department | null;
+
+  /**
+   * The team the invitee is being assigned to (HR context).
+   * Informational only — does not gate acceptance. SET NULL when the team is
+   * removed so the invitation history survives.
+   */
+  @Column({ name: 'team_id', type: 'uuid', nullable: true })
+  teamId: string | null;
+
+  @ManyToOne(() => Team, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'team_id' })
+  team: Team | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -128,6 +154,8 @@ export class OrganizationInvitation {
       invitedBy: this.invitedBy,
       acceptedAt: this.acceptedAt,
       createdAt: this.createdAt,
+      departmentId: this.departmentId ?? null,
+      teamId: this.teamId ?? null,
     };
   }
 }

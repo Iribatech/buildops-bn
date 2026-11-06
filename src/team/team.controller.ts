@@ -26,16 +26,14 @@ import {
   Protected,
   RequirePermissions,
 } from '../common/decorators/protected.decorator.js';
-import {
-  PaginationQueryDto,
-  type Paginated,
-} from '../common/pagination.dto.js';
+import { type Paginated } from '../common/pagination.dto.js';
 import { TeamService } from './team.service.js';
 import {
   AddTeamMemberDto,
   CreateTeamDto,
   TeamMemberResponseDto,
   TeamMessageResponseDto,
+  TeamQueryDto,
   TeamResponseDto,
   UpdateTeamDto,
   UpdateTeamMemberDto,
@@ -87,7 +85,7 @@ export class TeamController {
   @ApiErrors(403)
   async list(
     @OrgAuth() auth: OrganizationAuthContext,
-    @Query() query: PaginationQueryDto,
+    @Query() query: TeamQueryDto,
   ): Promise<Paginated<TeamResponseDto>> {
     const page = await this.teamService.list(auth.organizationId, query);
     return { ...page, items: page.items.map((team) => team.toResponse()) };
