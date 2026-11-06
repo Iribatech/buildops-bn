@@ -1,0 +1,42 @@
+name: Main source guard
+
+# main is production: a push to it deploys. Everything lands on develop first,
+# and the only pull request main accepts is develop → main from this
+# repository. This check fails any other pull request into main.
+#
+# Without branch protection, nothing stops someone merging past a red check.
+# It makes a wrong-source PR obvious, but it is not a lock.
+
+on:
+  pull_request:
+    branches: [main]
+    # `edited` reruns the check when someone retargets an open PR onto main.
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    name: PR into main comes from develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Check the head branch
+        # Values pass through env, never interpolated into the script, so a
+        # branch name cannot inject shell.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "::error::Pull requests into main must come from this repository's develop branch, not from $HEAD_REPO."
+            exit 1
+          fi
+          if [ "$HEAD_REF" != "develop" ]; then
+            echo "::error::Pull requests into main must come from develop, not from '$HEAD_REF'. Retarget this PR to develop, then release with a develop → main PR."
+            exit 1
+          fi
+          echo "PR into main comes from develop."
