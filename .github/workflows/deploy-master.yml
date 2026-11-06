@@ -1,10 +1,11 @@
 name: Deploy
 
 on:
-  # A merge to develop is a push. Scan runs first, then audit, then deploy.
-  # Each job starts only when the one before it succeeded.
+  # Only main ships. develop is for integration and never deploys. A merge to
+  # main is a push: scan runs first, then audit, then deploy, and each job
+  # starts only when the one before it succeeded.
   push:
-    branches: [develop]
+    branches: [main]
 
 permissions:
   contents: read
@@ -54,15 +55,22 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           if [ -z "$SSH_KEY" ]; then
-            echo "ERROR: SSH_PRIVATE_KEY_PROD secret is not set in GitHub repository secrets."
+            echo "ERROR: SSH_PRIVATE_KEY secret is not set in GitHub repository secrets."
             exit 1
           fi
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          printf 'Host 109.199.96.234\n  User maic\n  Port 2245\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  IdentityFile ~/.ssh/id_rsa\n' > ~/.ssh/config
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned host key. With checking off, anyone able to intercept the
+          # connection would be handed the build and the deploy session.
+          # Fingerprint: SHA256:r18DXwqWgqJHu30EHr4QJiCT9kp2AHFr3cbY8SELP+s
+          # If the server is rebuilt, replace this line with the output of
+          #   ssh-keyscan -p 2245 -t ed25519 109.199.96.234
+          echo '[109.199.96.234]:2245 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFo4OTcpine96X54xBkoVLjfl6n1fxak5DCBoF+Il/59' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          printf 'Host 109.199.96.234\n  User maic\n  Port 2245\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n' > ~/.ssh/config
           chmod 600 ~/.ssh/config
         env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Verify server prerequisites
         run: |
@@ -78,6 +86,13 @@ jobs:
             fi
             if ! systemctl cat buildops >/dev/null 2>&1; then
               echo "ERROR: systemd unit buildops is not installed. Install deploy/buildops.service and run: systemctl enable --now buildops"
+              exit 1
+            fi
+            # A system unit can only be restarted with root, and this runs
+            # unattended, so it needs a NOPASSWD rule scoped to that one command.
+            if ! sudo -n -l /usr/bin/systemctl restart buildops >/dev/null 2>&1; then
+              echo "ERROR: maic cannot restart buildops without a password. As root, run:"
+              echo "  echo \"maic ALL=(root) NOPASSWD: /usr/bin/systemctl restart buildops\" > /etc/sudoers.d/buildops-deploy && chmod 440 /etc/sudoers.d/buildops-deploy"
               exit 1
             fi
           '
@@ -100,6 +115,12 @@ jobs:
             set -euo pipefail
             cd /var/www/buildops
             pnpm install --frozen-lockfile --prod
-            systemctl restart buildops
+            sudo -n /usr/bin/systemctl restart buildops
+            sleep 3
+            if ! systemctl is-active --quiet buildops; then
+              echo "ERROR: buildops did not stay up after the restart. Last log lines:"
+              journalctl -u buildops -n 40 --no-pager 2>/dev/null || true
+              exit 1
+            fi
             echo "Deploy complete"
           '
