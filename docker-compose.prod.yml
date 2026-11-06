@@ -1,0 +1,63 @@
+# Production stack on buildopbn.kazilink.online, run by the Deploy workflow.
+#
+#   docker compose -p buildops -f docker-compose.prod.yml up -d
+#
+# Deploy builds the API image in CI and loads it onto the server, so the server
+# never compiles anything, and its own Node and the other sites on it are left
+# alone. Real settings come from .env next to this file. That file is created
+# on the server by hand and is never synced or overwritten.
+#
+# docker-compose.yml is the local full stack, and docker-compose.dev.yml is a
+# database-only stack for development.
+
+name: buildops
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME must be set in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      POSTGRES_DB: ${DB_DATABASE:?DB_DATABASE must be set in .env}
+    # No published port. Only the api container reaches the database, over
+    # the compose network. Nothing on the host or the internet can.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # A 1 vCPU / 2 GB droplet shared with other sites. Cap both containers so
+    # a runaway query or leak cannot starve its neighbours.
+    mem_limit: 512m
+
+  api:
+    image: buildops-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      # These override .env. A DB_HOST=localhost copied from a laptop would
+      # otherwise point the API at the container itself.
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+    # Bound to loopback on 3100. Port 3000 on the host belongs to another app,
+    # and only nginx (the buildopbn.kazilink.online vhost) should face the
+    # internet.
+    ports:
+      - "127.0.0.1:3100:3000"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+
+volumes:
+  postgres_data:
+  uploads:
