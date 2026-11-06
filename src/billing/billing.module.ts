@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import Stripe from 'stripe';
@@ -63,19 +63,16 @@ const UNCONFIGURED_KEY = 'sk_test_not_configured';
         stub: StubBillingProvider,
         stripe: StripeBillingProvider,
       ) => {
-        const configured = config.get<string>('BILLING_PROVIDER')?.trim();
-        const selected = configured || (isProduction(config) ? '' : 'stub');
-
-        if (!selected) {
-          throw new Error(
-            'BILLING_PROVIDER is not set. The default would be the "stub" provider, which takes no payment and grants every paid plan for free, so it refuses to start in production: set BILLING_PROVIDER=stripe and configure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.',
-          );
-        }
+        // Payments are bypassed for now: unless BILLING_PROVIDER=stripe is set,
+        // the stub is used, in production too, so no Stripe keys are needed.
+        // Turning payments on later is BILLING_PROVIDER=stripe plus the keys.
+        const selected =
+          config.get<string>('BILLING_PROVIDER')?.trim() || 'stub';
 
         if (selected === 'stub') {
           if (isProduction(config)) {
-            throw new Error(
-              'Refusing to start with BILLING_PROVIDER=stub in production: it takes no payment, so every customer would be granted the plan they selected for free. Set BILLING_PROVIDER=stripe and configure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.',
+            new Logger('BillingModule').warn(
+              'Payments are bypassed (BILLING_PROVIDER=stub): every plan a customer selects is granted with no charge. Set BILLING_PROVIDER=stripe and the Stripe keys to take payments.',
             );
           }
 
