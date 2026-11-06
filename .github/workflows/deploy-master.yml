@@ -51,6 +51,8 @@ jobs:
       - name: Build API
         run: pnpm build
 
+      # Everything below talks to the server through the `prod` SSH alias, so
+      # the host, user and port live only in this block.
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
@@ -61,38 +63,26 @@ jobs:
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           # Pinned host key. With checking off, anyone able to intercept the
-          # connection would be handed the build and the deploy session.
-          # Fingerprint: SHA256:r18DXwqWgqJHu30EHr4QJiCT9kp2AHFr3cbY8SELP+s
+          # connection would be handed the build and a root session.
+          # Fingerprint: SHA256:1XuhpR+9dL2Dagh2maRTNcttr6bEhIWEGNcw0szlxhw
           # If the server is rebuilt, replace this line with the output of
-          #   ssh-keyscan -p 2245 -t ed25519 109.199.96.234
-          echo '[109.199.96.234]:2245 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFo4OTcpine96X54xBkoVLjfl6n1fxak5DCBoF+Il/59' > ~/.ssh/known_hosts
+          #   ssh-keyscan -t ed25519 buildopbn.kazilink.online
+          echo 'buildopbn.kazilink.online ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIOZoF0APj/t6jnfIRe14brzxWrCcmu7VBdM/iGeb0d5' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-          printf 'Host 109.199.96.234\n  User maic\n  Port 2245\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n' > ~/.ssh/config
+          printf 'Host prod\n  HostName buildopbn.kazilink.online\n  User root\n  Port 22\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  BatchMode yes\n' > ~/.ssh/config
           chmod 600 ~/.ssh/config
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Verify server prerequisites
         run: |
-          ssh maic@109.199.96.234 '
+          ssh prod '
             set -euo pipefail
             mkdir -p /var/www/buildops
-            test -w /var/www/buildops
-            command -v node >/dev/null
-            command -v pnpm >/dev/null
+            command -v node >/dev/null || { echo "ERROR: node is not installed on the server (Node 22.13+ is required)."; exit 1; }
+            command -v pnpm >/dev/null || { echo "ERROR: pnpm is not installed on the server. Run: corepack enable pnpm"; exit 1; }
             if [ ! -f /var/www/buildops/.env ]; then
               echo "ERROR: /var/www/buildops/.env is missing. Copy .env.example there and fill it in. The sync will not create or overwrite it."
-              exit 1
-            fi
-            if ! systemctl cat buildops >/dev/null 2>&1; then
-              echo "ERROR: systemd unit buildops is not installed. Install deploy/buildops.service and run: systemctl enable --now buildops"
-              exit 1
-            fi
-            # A system unit can only be restarted with root, and this runs
-            # unattended, so it needs a NOPASSWD rule scoped to that one command.
-            if ! sudo -n -l /usr/bin/systemctl restart buildops >/dev/null 2>&1; then
-              echo "ERROR: maic cannot restart buildops without a password. As root, run:"
-              echo "  echo \"maic ALL=(root) NOPASSWD: /usr/bin/systemctl restart buildops\" > /etc/sudoers.d/buildops-deploy && chmod 440 /etc/sudoers.d/buildops-deploy"
               exit 1
             fi
           '
@@ -107,20 +97,32 @@ jobs:
             --exclude='coverage' \
             --exclude='coverage-e2e' \
             --exclude='.resets' \
-            ./ maic@109.199.96.234:/var/www/buildops/
+            ./ prod:/var/www/buildops/
 
+      # The unit ships with the repo, so a change to it deploys like any other
+      # file. It pins the API to port 3100: port 3000 on this server belongs to
+      # another app, and nginx proxies the domain to 127.0.0.1:3100.
       - name: Install production dependencies and restart
         run: |
-          ssh maic@109.199.96.234 '
+          ssh prod '
             set -euo pipefail
             cd /var/www/buildops
             pnpm install --frozen-lockfile --prod
-            sudo -n /usr/bin/systemctl restart buildops
-            sleep 3
-            if ! systemctl is-active --quiet buildops; then
-              echo "ERROR: buildops did not stay up after the restart. Last log lines:"
-              journalctl -u buildops -n 40 --no-pager 2>/dev/null || true
-              exit 1
-            fi
-            echo "Deploy complete"
+            install -m 644 deploy/buildops.service /etc/systemd/system/buildops.service
+            systemctl daemon-reload
+            systemctl enable --quiet buildops
+            systemctl restart buildops
+            # Migrations run on boot, so give the API time to come up before
+            # deciding it failed.
+            for _ in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://127.0.0.1:3100/api/v1/plans; then
+                echo "Deploy complete: API answering on 127.0.0.1:3100"
+                exit 0
+              fi
+              systemctl is-active --quiet buildops || break
+              sleep 2
+            done
+            echo "ERROR: buildops is not answering on 127.0.0.1:3100. Last log lines:"
+            journalctl -u buildops -n 60 --no-pager 2>/dev/null || true
+            exit 1
           '
