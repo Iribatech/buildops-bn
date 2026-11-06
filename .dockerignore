@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+dist
+coverage
+coverage-e2e
+uploads
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+test
+docs
+schema.sql

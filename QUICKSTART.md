@@ -2,12 +2,26 @@
 
 Get OfficeCore running in 5 minutes.
 
-## Prerequisites
+## Option A: Docker (easiest)
+
+This starts the API and PostgreSQL together. You only need Docker.
+
+```bash
+cp .env.example .env
+# set JWT_SECRET in .env (openssl rand -hex 32)
+docker compose up --build
+```
+
+Open http://localhost:3000/api/v1/docs. Migrations run automatically at startup.
+
+Stop with `docker compose down` (add `-v` to also delete the database).
+
+## Option B: Run on your machine
+
+### Prerequisites
 - Node.js 18+ 
 - pnpm 10+
 - Docker (for PostgreSQL) or a running PostgreSQL instance
-
-## Steps
 
 ### 1. Install dependencies
 ```bash

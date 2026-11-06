@@ -13,7 +13,37 @@
 - **Billing built-in** — Plans, trials, and Stripe integration ready out of the box
 - **Secure by design** — JWT auth with rotating refresh tokens, CSRF protection, role-based access, and multi-tenant isolation
 
-## Quick Start (5 Minutes)
+## Run with Docker (easiest)
+
+Docker runs the API and PostgreSQL together, so you do not need Node.js or a database installed on your machine.
+
+### 1) Create your environment file
+```bash
+cp .env.example .env
+```
+
+Set a strong `JWT_SECRET` in `.env` (generate one with `openssl rand -hex 32`).
+
+### 2) Build and start everything
+```bash
+docker compose up --build
+```
+
+### 3) Open the API
+- Swagger UI: `http://localhost:3000/api/v1/docs`
+- Health check: `http://localhost:3000/api/v1/health`
+
+The API applies database migrations automatically when it starts. PostgreSQL is available to desktop tools on `localhost:5433` (container port 5432).
+
+Useful commands:
+```bash
+docker compose logs -f api    # follow API logs
+docker compose down           # stop (keeps the database)
+docker compose down -v        # stop and delete the database
+docker compose up --build -d  # rebuild and run in the background
+```
+
+## Quick Start (5 Minutes, without Docker)
 
 The fastest way to try OfficeCore locally:
 
