@@ -99,7 +99,7 @@ Key endpoints:
 Copy `.env.example` to `.env`. Key settings:
 - `DB_*` - PostgreSQL connection
 - `JWT_SECRET` - Required for auth (generate with `openssl rand -hex 32`)
-- `BILLING_PROVIDER` - `stub` for local dev, `stripe` for production
+- `BILLING_PROVIDER` - `stub` (the default: payments bypassed, every plan granted free, no Stripe keys needed) or `stripe` (real payments; needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`)
 - `TRIAL_DAYS` - Free trial length (default: 14)
 - `APP_BASE_URL` - For email links
 
