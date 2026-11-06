@@ -1,6 +1,58 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/": {
+      "get": {
+        "description": "Returns the name, version and entry points of the API. Public, so a deployment can be identified before a token exists.",
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API information"
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "API info",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Liveness probe for load balancers and monitoring. Reports the service status, version and current server time.",
+        "operationId": "AppController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/auth/register": {
       "post": {
         "description": "Creates a user account and triggers a verification email. No access token is issued until the email is verified. Outside production the response also carries `verificationToken`/`verificationLink` and the `emailSent`/`emailError` outcome of the send, so a local flow can run without a mail server.",
@@ -20444,7 +20496,7 @@
     }
   },
   "info": {
-    "title": "OPS API",
+    "title": "OfficeCore API",
     "description": "Multi-tenant operations API.\n\nAuthentication is a stateless bearer JWT sent in the `Authorization` header.\nOrganization-scoped routes additionally require the active organization in the\n`x-organization-id` header, or in an `:organizationId` path segment, which\ntakes precedence when both are sent; your membership in that organization is\nverified on every call and the permissions of your role decide what is allowed.\n\nRecord collections are paginated with the `page` and `limit` query parameters\nand wrapped as `{ items, total, page, limit, totalPages }`. A few catalogue\nendpoints (`/plans` and `/subscription/usage`) answer with a plain JSON array\ninstead.\n\nEvery response body is JSON, errors included. An error always carries a\n`statusCode` and a `message`, and nothing else: `message` is a single string\nfor a business error and a string array when several fields failed validation.\nA third `error` key names the status, but it is absent on a rejected or\nexpired JWT (401) and on every 429, so branch on `statusCode` rather than on\n`error`. There is no `timestamp` and no `path`.\n\nRate limiting is global, so every operation — public ones included — documents a\n`429` alongside its other errors.",
     "version": "1.0"
   },
@@ -20564,6 +20616,10 @@
     {
       "name": "settings",
       "description": "Personal preferences of the authenticated user, the settings shared by an organization, and the account itself: credentials, sessions and deletion"
+    },
+    {
+      "name": "health",
+      "description": "API identity and the liveness probe used by monitoring"
     }
   ],
   "servers": [

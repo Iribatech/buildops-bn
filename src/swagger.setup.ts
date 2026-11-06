@@ -70,6 +70,7 @@ const TAGS: [name: string, description: string][] = [
     'settings',
     'Personal preferences of the authenticated user, the settings shared by an organization, and the account itself: credentials, sessions and deletion',
   ],
+  ['health', 'API identity and the liveness probe used by monitoring'],
 ];
 
 const DESCRIPTION = [

@@ -43,6 +43,9 @@ const HTTP_METHODS = ['get', 'post', 'patch', 'put', 'delete'];
  * the document and this table only ever move together.
  */
 const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
+  // Public entry points: the API identity and the liveness probe.
+  ['GET', '/', ['200']],
+  ['GET', '/health', ['200']],
   // Identity: registration, verification, credentials and the session itself.
   ['POST', '/auth/register', ['201']],
   ['POST', '/auth/login', ['201']],
@@ -207,16 +210,8 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   // Project human resources use an active/inactive lifecycle, not trash.
   ['POST', '/projects/{projectId}/human-resources', ['201']],
   ['GET', '/projects/{projectId}/human-resources', ['200']],
-  [
-    'GET',
-    '/projects/{projectId}/human-resources/{humanResourceId}',
-    ['200'],
-  ],
-  [
-    'PATCH',
-    '/projects/{projectId}/human-resources/{humanResourceId}',
-    ['200'],
-  ],
+  ['GET', '/projects/{projectId}/human-resources/{humanResourceId}', ['200']],
+  ['PATCH', '/projects/{projectId}/human-resources/{humanResourceId}', ['200']],
   [
     'POST',
     '/projects/{projectId}/human-resources/{humanResourceId}/deactivate',
@@ -335,6 +330,8 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
 
 /** Operations reachable without a bearer token. */
 const PUBLIC_OPERATIONS = [
+  'GET /',
+  'GET /health',
   'POST /auth/register',
   'POST /auth/refresh',
   'POST /auth/logout',
@@ -374,7 +371,7 @@ describe('OpenAPI document (e2e)', () => {
 
   it('serves the document as JSON', () => {
     expect(document.openapi).toMatch(/^3\./);
-    expect(document.info.title).toBe('OPS API');
+    expect(document.info.title).toBe('OfficeCore API');
     expect(Object.keys(document.components.securitySchemes)).toEqual([
       'bearer',
     ]);
