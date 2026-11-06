@@ -1,7 +1,7 @@
 name: Dependency audit
 
 on:
-  # On a merge to develop, Deploy calls this only after the malware scan has
+  # On a merge to main, Deploy calls this only after the malware scan has
   # passed. Pull requests and the weekly run still audit on their own.
   workflow_call:
   pull_request:
