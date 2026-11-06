@@ -56,23 +56,31 @@ jobs:
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          if [ -z "$SSH_KEY" ]; then
-            echo "ERROR: SSH_PRIVATE_KEY secret is not set in GitHub repository secrets."
+          missing=""
+          [ -n "$SSH_KEY" ] || missing="$missing SSH_PRIVATE_KEY"
+          [ -n "$DEPLOY_HOST" ] || missing="$missing SERVER_HOST"
+          [ -n "$DEPLOY_USER" ] || missing="$missing SERVER_USER"
+          if [ -n "$missing" ]; then
+            echo "ERROR: these repository secrets are not set:$missing"
             exit 1
           fi
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          # Pinned host key. With checking off, anyone able to intercept the
-          # connection would be handed the build and a root session.
+          # The host and user come from secrets, but the host key stays pinned
+          # here. Whatever SERVER_HOST names must present this exact key, so a
+          # wrong or hijacked host fails the connection instead of receiving
+          # the build and a root session.
           # Fingerprint: SHA256:1XuhpR+9dL2Dagh2maRTNcttr6bEhIWEGNcw0szlxhw
-          # If the server is rebuilt, replace this line with the output of
+          # If the server is rebuilt, replace the key with the output of
           #   ssh-keyscan -t ed25519 buildopbn.kazilink.online
-          echo 'buildopbn.kazilink.online ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIOZoF0APj/t6jnfIRe14brzxWrCcmu7VBdM/iGeb0d5' > ~/.ssh/known_hosts
+          echo "$DEPLOY_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIOZoF0APj/t6jnfIRe14brzxWrCcmu7VBdM/iGeb0d5" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-          printf 'Host prod\n  HostName buildopbn.kazilink.online\n  User root\n  Port 22\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  BatchMode yes\n' > ~/.ssh/config
+          printf 'Host prod\n  HostName %s\n  User %s\n  Port 22\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  BatchMode yes\n' "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
           chmod 600 ~/.ssh/config
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+          DEPLOY_USER: ${{ secrets.SERVER_USER }}
 
       - name: Verify server prerequisites
         run: |
