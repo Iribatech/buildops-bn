@@ -55,7 +55,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           if [ -z "$SSH_KEY" ]; then
-            echo "ERROR: SSH_PRIVATE_KEY_PROD secret is not set in GitHub repository secrets."
+            echo "ERROR: SSH_PRIVATE_KEY secret is not set in GitHub repository secrets."
             exit 1
           fi
           echo "$SSH_KEY" > ~/.ssh/deploy_key
@@ -70,7 +70,7 @@ jobs:
           printf 'Host 109.199.96.234\n  User maic\n  Port 2245\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n' > ~/.ssh/config
           chmod 600 ~/.ssh/config
         env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Verify server prerequisites
         run: |
