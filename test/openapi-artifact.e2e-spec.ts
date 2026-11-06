@@ -82,7 +82,7 @@ describe('OpenAPI artifact (e2e)', () => {
   describe('completeness', () => {
     it('is a 3.x document with a title, a version and a usable server', () => {
       expect(document.openapi).toMatch(/^3\./);
-      expect(document.info.title).toBe('OPS API');
+      expect(document.info.title).toBe('OfficeCore API');
       expect(document.info.version).toBe('1.0');
       expect(document.info.description?.length ?? 0).toBeGreaterThan(0);
       expect(document.servers?.[0]?.url).toBe(

@@ -1,4 +1,4 @@
-# OPS API — Frontend Integration Guide
+# OfficeCore API — Frontend Integration Guide
 
 Audience: frontend engineers building a client against this NestJS backend.
 
@@ -17,19 +17,18 @@ generated OpenAPI document (see [Live spec](#1-live-spec)).
 | Swagger UI               | `http://localhost:3000/api/v1/docs`      |
 | OpenAPI JSON (live)      | `http://localhost:3000/api/v1/docs-json` |
 | OpenAPI JSON (committed) | `docs/openapi.json`                      |
-| Liveness probe           | `GET /api/v1/` → `Hello World!`          |
+| Liveness probe           | `GET /api/v1/health` → `{ "status": "ok" }` |
 
 Every route below lives under the global prefix `api/v1` — include it in your
 `baseURL` so you never hard-code it in a path. `PORT` overrides `3000`.
 
-The document covers **195 operations across 132 paths** in 29 tag groups —
-`auth`, `plans`, `subscription`, `billing`, `organizations`, `workspace`, `roles`,
-`invitations`, `teams`, `departments`, `employees`, `leave`,
-`performance-reviews`, `human-resources`, `clients`, `projects`, `badges`,
-`tasks`, `subtasks`, `milestones`, `activity`, `comments`, `attachments`,
-`notifications`, `time-entries`, `time-complexity`, `dashboard`, `chat` and
-`settings`. The liveness probe is the only controller hidden with
-`@ApiExcludeController()`. Where the document and this guide disagree, treat the
+The document covers **197 operations across 134 paths** in 30 tag groups —
+`health`, `auth`, `plans`, `subscription`, `billing`, `organizations`,
+`workspace`, `roles`, `invitations`, `teams`, `departments`, `employees`,
+`leave`, `performance-reviews`, `human-resources`, `clients`, `projects`,
+`badges`, `tasks`, `subtasks`, `milestones`, `activity`, `comments`,
+`attachments`, `notifications`, `time-entries`, `time-complexity`, `dashboard`,
+`chat` and `settings`. Where the document and this guide disagree, treat the
 Swagger document as the authority on shape and this guide as the authority on
 behaviour.
 

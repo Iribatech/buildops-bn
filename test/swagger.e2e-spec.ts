@@ -465,7 +465,7 @@ describe('Swagger documentation (e2e)', () => {
 
       expect(res.headers['content-type']).toContain('application/json');
 
-      expect(doc.info.title).toBe('OPS API');
+      expect(doc.info.title).toBe('OfficeCore API');
 
       expect(doc.openapi).toBeDefined();
     });
@@ -935,13 +935,11 @@ describe('Swagger documentation (e2e)', () => {
       // be given a session explicitly: an access token with no `sid` is refused
       // before the account is even looked at, because such a token could never
       // be revoked.
-      const token = app
-        .get(JwtService)
-        .sign({
-          sub: userId,
-          email: 'pat@example.com',
-          sid: seedSession('family-unverified-check'),
-        });
+      const token = app.get(JwtService).sign({
+        sub: userId,
+        email: 'pat@example.com',
+        sid: seedSession('family-unverified-check'),
+      });
 
       await request(server)
         .get('/auth/profile')
