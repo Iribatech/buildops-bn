@@ -180,10 +180,9 @@ describe('billing gate (e2e)', () => {
     await app.close();
   });
 
-  it('refuses to boot in production while the stub provider is selected', async () => {
-    // The guard is the only thing standing between a misconfiguration and a
-    // product where every customer is granted the plan they picked for free, so
-    // it is asserted here rather than trusted.
+  it('boots in production on the stub when BILLING_PROVIDER is not set', async () => {
+    // Payments are bypassed for now: production must start without any Stripe
+    // keys and fall back to the stub instead of refusing to boot.
     //
     // `NODE_ENV` and `JWT_SECRET` are set on the environment before the module
     // is compiled, because provider factories run during compilation: setting
@@ -191,22 +190,31 @@ describe('billing gate (e2e)', () => {
     // running app already resolved, not a fresh one: a second `AppModule`
     // compile constructs a second `JwtStrategy`, and passport keeps its
     // strategies in a process-wide registry, so a *different* secret here would
-    // silently repoint the already-started app's authentication at it. The
-    // assertion below pins the billing message so a `JWT_SECRET` failure cannot
-    // stand in for it.
+    // silently repoint the already-started app's authentication at it.
     const previousNodeEnv = process.env.NODE_ENV;
     const previousSecret = process.env.JWT_SECRET;
+    const previousProvider = process.env.BILLING_PROVIDER;
     const runningSecret =
       app.get(ConfigService).get<string>('JWT_SECRET')?.trim() ??
       'fallback-secret';
     process.env.NODE_ENV = 'production';
     process.env.JWT_SECRET = runningSecret;
+    delete process.env.BILLING_PROVIDER;
 
     try {
-      await expect(
-        Test.createTestingModule({ imports: [AppModule] }).compile(),
-      ).rejects.toThrow(/stub/i);
+      const moduleRef = await Test.createTestingModule({
+        imports: [AppModule],
+      }).compile();
+
+      try {
+        expect(moduleRef.get(BILLING_PROVIDER).name).toBe('stub');
+      } finally {
+        await moduleRef.close();
+      }
     } finally {
+      if (previousProvider === undefined) delete process.env.BILLING_PROVIDER;
+      else process.env.BILLING_PROVIDER = previousProvider;
+
       if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
       else process.env.NODE_ENV = previousNodeEnv;
 
