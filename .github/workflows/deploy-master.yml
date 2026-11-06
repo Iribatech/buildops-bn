@@ -1,10 +1,11 @@
 name: Deploy
 
 on:
-  # A merge to develop is a push. Scan runs first, then audit, then deploy.
-  # Each job starts only when the one before it succeeded.
+  # Only main ships. develop is for integration and never deploys. A merge to
+  # main is a push: scan runs first, then audit, then deploy, and each job
+  # starts only when the one before it succeeded.
   push:
-    branches: [develop]
+    branches: [main]
 
 permissions:
   contents: read
