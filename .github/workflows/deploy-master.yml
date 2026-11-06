@@ -33,23 +33,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # pnpm 10. action-setup reads `packageManager` from package.json.
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-
-      # TypeORM requires Node ^22.13 (or 20.19, or >=24.11).
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          check-latest: true
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build API
-        run: pnpm build
+      # The image is built here, not on the server. The droplet has 1 vCPU and
+      # 2 GB shared with other sites, and its system Node is 12. The image
+      # brings its own Node 22, and the server only loads and runs it.
+      - name: Build API image
+        run: |
+          TAG="${GITHUB_SHA::12}"
+          echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
+          docker build --pull -t "buildops-api:$TAG" -t buildops-api:latest .
 
       # Everything below talks to the server through the `prod` SSH alias, so
       # the host, user and port live only in this block.
@@ -87,50 +78,66 @@ jobs:
           ssh prod '
             set -euo pipefail
             mkdir -p /var/www/buildops
-            command -v node >/dev/null || { echo "ERROR: node is not installed on the server (Node 22.13+ is required)."; exit 1; }
-            command -v pnpm >/dev/null || { echo "ERROR: pnpm is not installed on the server. Run: corepack enable pnpm"; exit 1; }
+            command -v docker >/dev/null || { echo "ERROR: docker is not installed on the server."; exit 1; }
+            docker compose version >/dev/null 2>&1 || { echo "ERROR: the docker compose plugin is not installed on the server."; exit 1; }
             if [ ! -f /var/www/buildops/.env ]; then
-              echo "ERROR: /var/www/buildops/.env is missing. Copy .env.example there and fill it in. The sync will not create or overwrite it."
+              echo "ERROR: /var/www/buildops/.env is missing. Copy .env.example there and fill it in. Deploy never creates or overwrites it."
               exit 1
             fi
-          '
-
-      - name: Sync app to server
-        run: |
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='.env.*' \
-            --exclude='node_modules' \
-            --exclude='coverage' \
-            --exclude='coverage-e2e' \
-            --exclude='.resets' \
-            ./ prod:/var/www/buildops/
-
-      # The unit ships with the repo, so a change to it deploys like any other
-      # file. It pins the API to port 3100: port 3000 on this server belongs to
-      # another app, and nginx proxies the domain to 127.0.0.1:3100.
-      - name: Install production dependencies and restart
-        run: |
-          ssh prod '
-            set -euo pipefail
-            cd /var/www/buildops
-            pnpm install --frozen-lockfile --prod
-            install -m 644 deploy/buildops.service /etc/systemd/system/buildops.service
-            systemctl daemon-reload
-            systemctl enable --quiet buildops
-            systemctl restart buildops
-            # Migrations run on boot, so give the API time to come up before
-            # deciding it failed.
-            for _ in $(seq 1 30); do
-              if curl -fsS -o /dev/null http://127.0.0.1:3100/api/v1/plans; then
-                echo "Deploy complete: API answering on 127.0.0.1:3100"
-                exit 0
-              fi
-              systemctl is-active --quiet buildops || break
-              sleep 2
+            # Checked by name only, so the values never reach the log.
+            # Only what compose needs to start PostgreSQL is checked here. The
+            # production settings of the API itself (JWT_SECRET, ALLOWED_ORIGINS,
+            # BILLING_PROVIDER and the Stripe keys) are left to the server. If
+            # one is missing, the health check below fails and prints the error
+            # from the API naming it.
+            missing=""
+            for key in DB_USERNAME DB_PASSWORD DB_DATABASE; do
+              grep -qE "^${key}=.+" /var/www/buildops/.env || missing="$missing $key"
             done
-            echo "ERROR: buildops is not answering on 127.0.0.1:3100. Last log lines:"
-            journalctl -u buildops -n 60 --no-pager 2>/dev/null || true
-            exit 1
+            if [ -n "$missing" ]; then
+              echo "ERROR: /var/www/buildops/.env is missing values for:$missing"
+              exit 1
+            fi
+            chmod 600 /var/www/buildops/.env
           '
+
+      # Streamed straight into `docker load`, so no registry is involved and
+      # no credentials are needed on the server to pull.
+      - name: Ship image and compose file
+        run: |
+          docker save "buildops-api:$IMAGE_TAG" buildops-api:latest | gzip -1 | ssh prod 'gunzip | docker load'
+          scp docker-compose.prod.yml prod:/var/www/buildops/docker-compose.prod.yml
+
+      # Compose reads .env in the project directory both for ${...} values in
+      # the file and for the api container's environment. The API is published
+      # on 127.0.0.1:3100 only, behind the nginx vhost.
+      - name: Start the stack
+        run: |
+          ssh prod "IMAGE_TAG=$IMAGE_TAG bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd /var/www/buildops
+          # An earlier attempt deployed through a systemd unit. Retire it, if it
+          # exists, so it cannot fight the container for port 3100.
+          if systemctl cat buildops >/dev/null 2>&1; then
+            systemctl disable --now buildops || true
+            rm -f /etc/systemd/system/buildops.service
+            systemctl daemon-reload
+          fi
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          # Migrations run before the API listens, so allow time for them.
+          for _ in $(seq 1 45); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3100/api/v1/health; then
+              echo "Deploy complete: buildops-api:$IMAGE_TAG answering on 127.0.0.1:3100"
+              # Keep the image just deployed and :latest, and drop older tags.
+              docker images buildops-api --format '{{.Tag}}' \
+                | grep -vxE "latest|$IMAGE_TAG" \
+                | xargs -r -I{} docker rmi "buildops-api:{}" >/dev/null 2>&1 || true
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "ERROR: the API is not answering on 127.0.0.1:3100. Container state and last log lines:"
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml logs --tail 80 api
+          exit 1
+          REMOTE
