@@ -6,8 +6,6 @@ dist/
 *.tsbuildinfo
 
 # env
-.env
-.env.*
 !.env.example
 
 # coverage
@@ -25,3 +23,4 @@ npm-debug.log*
 
 # Runtime attachment storage
 uploads/
+config.bat

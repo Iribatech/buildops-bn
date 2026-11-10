@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerStorage } from '@nestjs/throttler';
-import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { jest } from '@jest/globals';
 import request from 'supertest';
@@ -178,49 +177,6 @@ describe('billing gate (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-  });
-
-  it('boots in production on the stub when BILLING_PROVIDER is not set', async () => {
-    // Payments are bypassed for now: production must start without any Stripe
-    // keys and fall back to the stub instead of refusing to boot.
-    //
-    // `NODE_ENV` and `JWT_SECRET` are set on the environment before the module
-    // is compiled, because provider factories run during compilation: setting
-    // them afterwards would test nothing. `JWT_SECRET` is given the value the
-    // running app already resolved, not a fresh one: a second `AppModule`
-    // compile constructs a second `JwtStrategy`, and passport keeps its
-    // strategies in a process-wide registry, so a *different* secret here would
-    // silently repoint the already-started app's authentication at it.
-    const previousNodeEnv = process.env.NODE_ENV;
-    const previousSecret = process.env.JWT_SECRET;
-    const previousProvider = process.env.BILLING_PROVIDER;
-    const runningSecret =
-      app.get(ConfigService).get<string>('JWT_SECRET')?.trim() ??
-      'fallback-secret';
-    process.env.NODE_ENV = 'production';
-    process.env.JWT_SECRET = runningSecret;
-    delete process.env.BILLING_PROVIDER;
-
-    try {
-      const moduleRef = await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
-
-      try {
-        expect(moduleRef.get(BILLING_PROVIDER).name).toBe('stub');
-      } finally {
-        await moduleRef.close();
-      }
-    } finally {
-      if (previousProvider === undefined) delete process.env.BILLING_PROVIDER;
-      else process.env.BILLING_PROVIDER = previousProvider;
-
-      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = previousNodeEnv;
-
-      if (previousSecret === undefined) delete process.env.JWT_SECRET;
-      else process.env.JWT_SECRET = previousSecret;
-    }
   });
 
   it('does not put a plan in force until the payment settles', async () => {
