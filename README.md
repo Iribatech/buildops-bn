@@ -121,5 +121,13 @@ NestJS • TypeORM • PostgreSQL • Socket.IO • Stripe • JWT
 
 ## Documentation
 
+- [Architecture overview](ARCHITECTURE_OVERVIEW.md) — runtime topology, modules, request lifecycle, tenancy, data model
+- [Configuration reference](CONFIGURATION.md) — every environment variable and production requirement
+- [Deployment guide](DEPLOYMENT.md) — local setup, CI, production stack, rollback
+- [Backup and restore](BACKUP_RESTORE.md) — PostgreSQL and uploads recovery
+- [Contributing](CONTRIBUTING.md) — branch model, review checklist, definition of done
+- [Quick start](QUICKSTART.md)
+- [Frontend integration](INTEGRATION.md) and [full frontend guide](docs/frontend-guide.md)
+- [Domain specification](docs/specification.md)
 - Swagger UI: `http://localhost:3000/api/v1/docs`
 - OpenAPI JSON: `http://localhost:3000/api/v1/docs-json`
