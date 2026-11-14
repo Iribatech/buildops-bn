@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Res,
@@ -35,8 +36,9 @@ import { AttachmentResponseDto } from './dto/attachment.dto.js';
 import type { Response } from 'express';
 
 /**
- * Files attached to tasks, subtasks and comments. Downloads require the same
- * authentication as every other route: an attachment URL is not a public link.
+ * Files attached to tasks, subtasks, comments and documents. Downloads require
+ * the same authentication as every other route: an attachment URL is not a
+ * public link.
  */
 @ApiRateLimited()
 @ApiTags('attachments')
@@ -76,6 +78,60 @@ export class AttachmentController {
     });
   }
 
+  @Post('document/:documentId')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.DOCUMENT_UPDATE)
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload a file to a document',
+    description:
+      'Multipart upload with the file in the `file` field. The caller must be able to edit the document, not merely read it.',
+  })
+  @ApiResponse({
+    description: 'The stored attachment',
+    status: 201,
+    type: AttachmentResponseDto,
+  })
+  @ApiErrors(400, 401, 403, 404)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadForDocument(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @UploadedFile() file: any,
+  ) {
+    return this.attachmentService.uploadForDocument(
+      auth.organizationId,
+      auth,
+      documentId,
+      file,
+    );
+  }
+
+  @Get('document/:documentId')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
+  @ApiOperation({
+    summary: 'List attachments for a document',
+    description:
+      'Every live attachment on a document, newest first. The document must be visible to the caller.',
+  })
+  @ApiResponse({
+    description: 'The attachments on the document',
+    status: 200,
+    type: [AttachmentResponseDto],
+  })
+  @ApiErrors(401, 403, 404)
+  listForDocument(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+  ) {
+    return this.attachmentService.listForDocument(
+      auth.organizationId,
+      auth,
+      documentId,
+    );
+  }
+
   @Get('task/:taskId')
   @OrganizationHeader()
   @RequirePermissions(PERMISSIONS.TASK_VIEW)
@@ -98,12 +154,14 @@ export class AttachmentController {
 
   @Get(':attachmentId/download')
   @OrganizationHeader()
-  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   @ApiOperation({
     summary: 'Download an attachment',
     description:
       'Streams the stored file. Authentication and organization membership ' +
-      'are required, so the URL cannot be shared as a public link.',
+      'are required, so the URL cannot be shared as a public link. The target ' +
+      'decides the permission: task attachments need `task.view`, document ' +
+      'attachments need `document.view` and the document itself must be ' +
+      'visible to the caller.',
   })
   @ApiResponse({
     description: 'The file contents',
@@ -117,6 +175,7 @@ export class AttachmentController {
   ): Promise<StreamableFile> {
     const { file, attachment } = await this.attachmentService.download(
       auth.organizationId,
+      auth,
       attachmentId,
     );
     res.set({

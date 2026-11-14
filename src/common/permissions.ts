@@ -59,6 +59,11 @@ export const PERMISSIONS = {
   MILESTONE_CREATE: 'milestone.create',
   MILESTONE_UPDATE: 'milestone.update',
   MILESTONE_DELETE: 'milestone.delete',
+  DOCUMENT_VIEW: 'document.view',
+  DOCUMENT_CREATE: 'document.create',
+  DOCUMENT_UPDATE: 'document.update',
+  DOCUMENT_DELETE: 'document.delete',
+  DOCUMENT_APPROVE: 'document.approve',
   NOTIFICATION_VIEW: 'notification.view',
   NOTIFICATION_UPDATE: 'notification.update',
   NOTIFICATION_DELETE: 'notification.delete',
@@ -150,6 +155,13 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       'subtask.update' as PermissionName,
       'subtask.delete' as PermissionName,
       'subtask.assign' as PermissionName,
+      // Runs delivery, so it owns the record of what was delivered: it can
+      // write documentation and approve the reports its team submits.
+      PERMISSIONS.DOCUMENT_VIEW,
+      PERMISSIONS.DOCUMENT_CREATE,
+      PERMISSIONS.DOCUMENT_UPDATE,
+      PERMISSIONS.DOCUMENT_DELETE,
+      PERMISSIONS.DOCUMENT_APPROVE,
       PERMISSIONS.TIME_ENTRY_VIEW,
       PERMISSIONS.TIME_ENTRY_VIEW_ALL,
       PERMISSIONS.TIME_ENTRY_UPDATE,
@@ -208,6 +220,12 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       PERMISSIONS.PERFORMANCE_REVIEW_VIEW,
       PERMISSIONS.PERFORMANCE_REVIEW_CREATE,
       PERMISSIONS.PERFORMANCE_REVIEW_UPDATE,
+      // Keeps the people-side record: HR can write the documentation a team
+      // needs (procedures, handover notes) but approving delivery reports stays
+      // with the project manager.
+      PERMISSIONS.DOCUMENT_VIEW,
+      PERMISSIONS.DOCUMENT_CREATE,
+      PERMISSIONS.DOCUMENT_UPDATE,
       PERMISSIONS.DASHBOARD_VIEW,
       PERMISSIONS.SETTINGS_VIEW,
       PERMISSIONS.NOTIFICATION_VIEW,
@@ -239,6 +257,11 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       PERMISSIONS.TASK_CREATE,
       PERMISSIONS.TASK_UPDATE,
       PERMISSIONS.MILESTONE_VIEW,
+      // Writes the record of their own work. Approval is deliberately absent:
+      // a developer documents and submits, a manager signs off.
+      PERMISSIONS.DOCUMENT_VIEW,
+      PERMISSIONS.DOCUMENT_CREATE,
+      PERMISSIONS.DOCUMENT_UPDATE,
       PERMISSIONS.SUBTASK_CREATE,
       PERMISSIONS.SUBTASK_UPDATE,
       PERMISSIONS.SUBTASK_ASSIGN,
@@ -275,6 +298,11 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       ...viewOnly('subtask'),
       PERMISSIONS.TASK_UPDATE,
       PERMISSIONS.MILESTONE_VIEW,
+      // A tester records what was verified and how; like a developer, they do
+      // not approve their own reports.
+      PERMISSIONS.DOCUMENT_VIEW,
+      PERMISSIONS.DOCUMENT_CREATE,
+      PERMISSIONS.DOCUMENT_UPDATE,
       PERMISSIONS.SUBTASK_CREATE,
       PERMISSIONS.SUBTASK_UPDATE,
       PERMISSIONS.TIME_ENTRY_VIEW,
@@ -310,6 +338,7 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       ...viewOnly('task'),
       ...viewOnly('subtask'),
       ...viewOnly('milestone'),
+      ...viewOnly('document'),
       ...viewOnly('notification'),
       ...viewOnly('time_entry'),
       ...viewOnly('time_complexity'),

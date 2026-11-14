@@ -28,6 +28,7 @@ import { UserSettings } from '../settings/user-settings.entity.js';
 import { Activity } from '../activity/activity.entity.js';
 import { Comment, CommentMention } from '../comment/comment.entity.js';
 import { Attachment } from '../attachment/attachment.entity.js';
+import { Document, DocumentVersion } from '../document/document.entity.js';
 import {
   ChatChannel,
   ChatChannelParticipant,
@@ -69,6 +70,8 @@ export const ENTITIES = [
   Comment,
   CommentMention,
   Attachment,
+  Document,
+  DocumentVersion,
   ChatChannel,
   ChatMessage,
   ChatChannelParticipant,

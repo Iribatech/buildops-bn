@@ -24,6 +24,7 @@ export const ACTIVITY_ENTITY_TYPES = [
   'client',
   'badge',
   'comment',
+  'document',
   'employee',
   'leave_type',
   'leave_request',

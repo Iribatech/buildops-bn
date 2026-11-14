@@ -7,6 +7,7 @@
 - **Business-first** — One subscription = your business account. Create as many companies/offices as your plan allows.
 - **Clients & Jobs** — Keep track of clients, manage jobs/projects, and stay on top of deadlines
 - **Tasks & Time** — Assign work, track progress, log time, and get a clear picture of where effort goes
+- **Work documentation** — Write reports, daily logs, procedures and handover notes against a project or task, with version history, reviewer approve/reject with notes, optimistic locking, work date/hours, document attachments and organization/project visibility
 - **People & Teams** — Manage employees, teams, departments, roles, and permissions with granular control
 - **Leave & HR** — Handle leave requests, balances, and keep your team organized
 - **Chat & Notifications** — Stay in sync with org, project, task, and direct messaging
@@ -92,6 +93,7 @@ Key endpoints:
 - `GET /clients`, `POST /clients` - Manage clients
 - `GET /projects`, `POST /projects` - Manage jobs/projects
 - `GET /tasks`, `POST /tasks` - Manage tasks
+- `GET /documents`, `POST /documents` - Work documentation with versions, approval/rejection and review notes
 - `GET /time-entries` - Track time
 
 ## Environment

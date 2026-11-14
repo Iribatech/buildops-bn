@@ -24,6 +24,8 @@ const TABLES = [
   'comment_mentions',
   'comments',
   'attachments',
+  'document_versions',
+  'documents',
   'organization_settings',
   'user_settings',
   'refresh_tokens',

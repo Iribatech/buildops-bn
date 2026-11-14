@@ -25,6 +25,9 @@ export class AttachmentResponseDto {
   @ApiProperty({ required: false })
   commentId: string | null;
 
+  @ApiProperty({ required: false })
+  documentId: string | null;
+
   @ApiProperty()
   uploaderId: string;
 

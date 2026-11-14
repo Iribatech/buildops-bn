@@ -9,11 +9,13 @@ import { Task } from '../task/task.entity.js';
 import { Subtask } from '../subtask/subtask.entity.js';
 import { Project } from '../project/project.entity.js';
 import { Comment } from '../comment/comment.entity.js';
+import { DocumentModule } from '../document/document.module.js';
 
 @Module({
   imports: [
     AuthModule,
     AuthorizationModule,
+    DocumentModule,
     TypeOrmModule.forFeature([Attachment, Task, Subtask, Project, Comment]),
   ],
   controllers: [AttachmentController],

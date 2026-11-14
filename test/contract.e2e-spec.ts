@@ -8444,6 +8444,670 @@ describe('published contract vs runtime (e2e)', () => {
     });
   });
 
+  describe('work documentation', () => {
+    // One live document runs through update, submit and approve; the others exist
+    // so each refusal can be reached on a document in the wrong state.
+    let documentId = '';
+    let emptyDocumentId = '';
+    let draftDocumentId = '';
+    let archiveDocumentId = '';
+
+    it('POST /documents returns 201, 400, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        '/documents',
+        (req) => req.send({ title: 'Ghost' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/documents',
+        (req) => asOutsider(req).send({ title: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents',
+        (req) => asOwner(req).send({ title: '' }),
+        '400',
+        'empty title',
+      );
+      await probe(
+        'post',
+        '/documents',
+        (req) =>
+          asOwner(req).send({
+            title: 'Ghost',
+            projectId: '00000000-0000-4000-8000-000000000000',
+          }),
+        '404',
+        'unknown project',
+      );
+
+      const created = await probe(
+        'post',
+        '/documents',
+        (req) =>
+          asOwner(req).send({
+            title: 'Foundation pour',
+            body: 'Poured 42 m3 of C25 concrete over the north footing.',
+            type: 'work_report',
+          }),
+        '201',
+      );
+      documentId = created.body.id;
+      expect(created.body.status).toBe('draft');
+      expect(created.body.currentVersion).toBe(1);
+
+      const empty = await probe(
+        'post',
+        '/documents',
+        (req) => asOwner(req).send({ title: 'Empty draft' }),
+        '201',
+        'no body yet',
+      );
+      emptyDocumentId = empty.body.id;
+
+      const draft = await probe(
+        'post',
+        '/documents',
+        (req) =>
+          asOwner(req).send({ title: 'Draft to reject', body: 'Not reviewed' }),
+        '201',
+        'approval target',
+      );
+      draftDocumentId = draft.body.id;
+
+      const archived = await probe(
+        'post',
+        '/documents',
+        (req) => asOwner(req).send({ title: 'Archive me', body: 'Old report' }),
+        '201',
+        'archive target',
+      );
+      archiveDocumentId = archived.body.id;
+    });
+
+    it('GET /documents returns 200, 401 and 403', async () => {
+      const listed = await probe(
+        'get',
+        '/documents',
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.items.length).toBeGreaterThanOrEqual(4);
+
+      await probe('get', '/documents', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/documents',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('GET /documents/trash returns 200, 401 and 403', async () => {
+      await probe('get', '/documents/trash', (req) => asOwner(req), '200');
+      await probe('get', '/documents/trash', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/documents/trash',
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+    });
+
+    it('POST /documents/{documentId}/restore returns 201, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/documents/${documentId}/restore`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/documents/${documentId}/restore`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents/00000000-0000-4000-8000-000000000000/restore',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+      await probe(
+        'post',
+        `/documents/${documentId}/restore`,
+        (req) => asOwner(req),
+        '409',
+        'not deleted',
+      );
+
+      const doomed = await probe(
+        'post',
+        '/documents',
+        (req) => asOwner(req).send({ title: 'Restore me', body: 'Keep me' }),
+        '201',
+        'to be restored',
+      );
+      const doomedId = doomed.body.id as string;
+
+      await probe(
+        'delete',
+        `/documents/${doomedId}`,
+        (req) => asOwner(req),
+        '200',
+        'to trash',
+      );
+      const restored = await probe(
+        'post',
+        `/documents/${doomedId}/restore`,
+        (req) => asOwner(req),
+        '201',
+        'restore',
+      );
+      expect(restored.body.id).toBe(doomedId);
+    });
+
+    it('GET /documents/{documentId} returns 200, 401, 403 and 404', async () => {
+      const found = await probe(
+        'get',
+        `/documents/${documentId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(found.body.id).toBe(documentId);
+
+      await probe(
+        'get',
+        `/documents/${documentId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/documents/${documentId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        '/documents/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+    });
+
+    it('PATCH /documents/{documentId} returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'patch',
+        `/documents/${documentId}`,
+        (req) => req.send({ title: 'Ghost' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'patch',
+        `/documents/${documentId}`,
+        (req) => asOutsider(req).send({ title: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'patch',
+        '/documents/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req).send({ title: 'Ghost' }),
+        '404',
+        'unknown document',
+      );
+      await probe(
+        'patch',
+        `/documents/${documentId}`,
+        (req) => asOwner(req).send({ title: '' }),
+        '400',
+        'empty title',
+      );
+
+      const updated = await probe(
+        'patch',
+        `/documents/${documentId}`,
+        (req) =>
+          asOwner(req).send({
+            body: 'Poured 44 m3 of C25 concrete; north footing signed off.',
+          }),
+        '200',
+        'new body',
+      );
+      expect(updated.body.currentVersion).toBe(2);
+      expect(updated.body.revision).toBe(2);
+
+      await probe(
+        'patch',
+        `/documents/${documentId}`,
+        (req) =>
+          asOwner(req).send({ body: 'Stale overwrite.', revision: 1 }),
+        '409',
+        'stale revision',
+      );
+    });
+
+    it('DELETE /documents/{documentId} returns 200, 401, 403 and 404', async () => {
+      await probe(
+        'delete',
+        `/documents/${documentId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'delete',
+        `/documents/${documentId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'delete',
+        '/documents/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+
+      const doomed = await probe(
+        'post',
+        '/documents',
+        (req) => asOwner(req).send({ title: 'Delete me', body: 'Temporary' }),
+        '201',
+        'to be deleted',
+      );
+      const removed = await probe(
+        'delete',
+        `/documents/${doomed.body.id}`,
+        (req) => asOwner(req),
+        '200',
+        'delete',
+      );
+      expect(removed.body.message).toBe('Document deleted');
+    });
+
+    it('POST /documents/{documentId}/submit returns 200, 400, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/documents/${documentId}/submit`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/documents/${documentId}/submit`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents/00000000-0000-4000-8000-000000000000/submit',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+      await probe(
+        'post',
+        `/documents/${emptyDocumentId}/submit`,
+        (req) => asOwner(req),
+        '400',
+        'empty content',
+      );
+
+      const submitted = await probe(
+        'post',
+        `/documents/${documentId}/submit`,
+        (req) => asOwner(req),
+        '200',
+        'submit',
+      );
+      expect(submitted.body.status).toBe('submitted');
+
+      await probe(
+        'post',
+        `/documents/${documentId}/submit`,
+        (req) => asOwner(req),
+        '409',
+        'already submitted',
+      );
+    });
+
+    it('POST /documents/{documentId}/approve returns 200, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/documents/${documentId}/approve`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/documents/${documentId}/approve`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents/00000000-0000-4000-8000-000000000000/approve',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+      await probe(
+        'post',
+        `/documents/${draftDocumentId}/approve`,
+        (req) => asOwner(req),
+        '409',
+        'not submitted',
+      );
+
+      const approved = await probe(
+        'post',
+        `/documents/${documentId}/approve`,
+        (req) => asOwner(req),
+        '200',
+        'approve',
+      );
+      expect(approved.body.status).toBe('approved');
+      expect(approved.body.approvedAt).not.toBeNull();
+    });
+
+    it('POST /documents/{documentId}/reject returns 200, 400, 401, 403, 404 and 409', async () => {
+      const rejectable = await probe(
+        'post',
+        '/documents',
+        (req) =>
+          asOwner(req).send({
+            title: 'Rejectable report',
+            body: 'Waiting for the quantity surveyor.',
+          }),
+        '201',
+        'rejection target',
+      );
+      const rejectableId = rejectable.body.id as string;
+
+      await probe(
+        'post',
+        `/documents/${rejectableId}/reject`,
+        (req) => req.send({ note: 'Ghost' }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/documents/${rejectableId}/reject`,
+        (req) => asOutsider(req).send({ note: 'Stolen' }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents/00000000-0000-4000-8000-000000000000/reject',
+        (req) => asOwner(req).send({ note: 'Unknown' }),
+        '404',
+        'unknown document',
+      );
+      await probe(
+        'post',
+        `/documents/${rejectableId}/reject`,
+        (req) => asOwner(req).send({ note: 'Not submitted yet' }),
+        '409',
+        'not submitted',
+      );
+
+      await probe(
+        'post',
+        `/documents/${rejectableId}/submit`,
+        (req) => asOwner(req),
+        '200',
+        'submit before rejecting',
+      );
+
+      await probe(
+        'post',
+        `/documents/${rejectableId}/reject`,
+        (req) => asOwner(req).send({ note: '   ' }),
+        '400',
+        'empty note',
+      );
+
+      const rejected = await probe(
+        'post',
+        `/documents/${rejectableId}/reject`,
+        (req) => asOwner(req).send({ note: 'Wrong quantities on page 2.' }),
+        '200',
+        'reject',
+      );
+      expect(rejected.body.status).toBe('changes_requested');
+      expect(rejected.body.reviewNote).toBe('Wrong quantities on page 2.');
+      expect(rejected.body.reviewedById).toEqual(expect.any(String));
+
+      const resubmitted = await probe(
+        'post',
+        `/documents/${rejectableId}/submit`,
+        (req) => asOwner(req),
+        '200',
+        'resubmit after changes',
+      );
+      expect(resubmitted.body.status).toBe('submitted');
+    });
+
+    it('POST /documents/{documentId}/archive returns 200, 401, 403, 404 and 409', async () => {
+      await probe(
+        'post',
+        `/documents/${archiveDocumentId}/archive`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/documents/${archiveDocumentId}/archive`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/documents/00000000-0000-4000-8000-000000000000/archive',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+
+      const archived = await probe(
+        'post',
+        `/documents/${archiveDocumentId}/archive`,
+        (req) => asOwner(req),
+        '200',
+        'archive',
+      );
+      expect(archived.body.status).toBe('archived');
+
+      await probe(
+        'post',
+        `/documents/${archiveDocumentId}/archive`,
+        (req) => asOwner(req),
+        '409',
+        'already archived',
+      );
+    });
+
+    it('GET /documents/{documentId}/versions returns 200, 401, 403 and 404', async () => {
+      const versions = await probe(
+        'get',
+        `/documents/${documentId}/versions`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(versions.body.length).toBeGreaterThanOrEqual(2);
+
+      await probe(
+        'get',
+        `/documents/${documentId}/versions`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/documents/${documentId}/versions`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        '/documents/00000000-0000-4000-8000-000000000000/versions',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+    });
+
+    it('GET /documents/{documentId}/versions/{version} returns 200, 401, 403 and 404', async () => {
+      const first = await probe(
+        'get',
+        `/documents/${documentId}/versions/1`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(first.body.version).toBe(1);
+      expect(first.body.title).toBe('Foundation pour');
+
+      await probe(
+        'get',
+        `/documents/${documentId}/versions/1`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/documents/${documentId}/versions/1`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/documents/${documentId}/versions/999`,
+        (req) => asOwner(req),
+        '404',
+        'unknown version',
+      );
+    });
+
+    it('POST /attachments/document/{documentId} returns 201, 400, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        `/attachments/document/${documentId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        `/attachments/document/${documentId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        `/attachments/document/${documentId}`,
+        (req) => asOwner(req),
+        '400',
+        'no file',
+      );
+      await probe(
+        'post',
+        '/attachments/document/00000000-0000-4000-8000-000000000000',
+        (req) =>
+          asOwner(req).attach('file', Buffer.from('hello'), 'hello.txt'),
+        '404',
+        'unknown document',
+      );
+
+      const uploaded = await probe(
+        'post',
+        `/attachments/document/${documentId}`,
+        (req) =>
+          asOwner(req).attach('file', Buffer.from('hello'), {
+            filename: 'hello.txt',
+            contentType: 'text/plain',
+          }),
+        '201',
+        'document file',
+      );
+      expect(uploaded.body.documentId).toBe(documentId);
+
+      await probe(
+        'get',
+        `/attachments/${uploaded.body.id}/download`,
+        (req) => asOwner(req),
+        '200',
+        'document file download',
+      );
+    });
+
+    it('GET /attachments/document/{documentId} returns 200, 401, 403 and 404', async () => {
+      const listed = await probe(
+        'get',
+        `/attachments/document/${documentId}`,
+        (req) => asOwner(req),
+        '200',
+      );
+      expect(listed.body.length).toBeGreaterThanOrEqual(1);
+      expect(
+        listed.body.every(
+          (item: { documentId: string }) => item.documentId === documentId,
+        ),
+      ).toBe(true);
+
+      await probe(
+        'get',
+        `/attachments/document/${documentId}`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/attachments/document/${documentId}`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        '/attachments/document/00000000-0000-4000-8000-000000000000',
+        (req) => asOwner(req),
+        '404',
+        'unknown document',
+      );
+    });
+  });
+
   describe('organization teardown', () => {
     it('DELETE /organizations/{organizationId} returns 200 for a confirmed owner', async () => {
       // The only operation that tears the tenant down, so it runs after every
