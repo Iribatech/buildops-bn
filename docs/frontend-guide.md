@@ -1348,20 +1348,92 @@ are soft-deleted and omitted from every list, with no trash/restore route.
 
 Attachments require `Org` via header.
 
-| Method | Path                                   | Perm          | Errors              |
-| ------ | -------------------------------------- | ------------- | ------------------- |
-| `POST` | `/attachments/upload`                  | `task.update` | `400`, `403`, `404` |
-| `GET`  | `/attachments/task/{taskId}`           | `task.view`   | `403`               |
-| `GET`  | `/attachments/{attachmentId}/download` | `task.view`   | `403`, `404`        |
+| Method | Path                                   | Perm               | Errors              |
+| ------ | -------------------------------------- | ------------------ | ------------------- |
+| `POST` | `/attachments/upload`                  | `task.update`      | `400`, `403`, `404` |
+| `GET`  | `/attachments/task/{taskId}`           | `task.view`        | `403`               |
+| `POST` | `/attachments/document/{documentId}`   | `document.update`  | `400`, `403`, `404` |
+| `GET`  | `/attachments/document/{documentId}`   | `document.view`    | `403`, `404`        |
+| `GET`  | `/attachments/{attachmentId}/download` | target permission  | `403`, `404`        |
 
-Upload is `multipart/form-data` with the file in `file` and exactly one of
-`taskId`, `subtaskId` or `commentId` in the query string. Missing file or target
-is `400`; an unknown target is `404`. The response includes `url`
-(`/api/v1/attachments/{id}/download`), but the download still needs the bearer
-token and organization header — do not treat it as a public link. Listing is
-newest first; deleted attachments are omitted.
+Upload is `multipart/form-data` with the file in `file`. `/attachments/upload`
+takes exactly one of `taskId`, `subtaskId` or `commentId` in the query string;
+the document route takes the document in the path. Missing file or target is
+`400`; an unknown target is `404`. A document upload additionally requires the
+caller to be the document author or hold `document.approve`. The response
+includes `url` (`/api/v1/attachments/{id}/download`), but the download still
+needs the bearer token and organization header — do not treat it as a public
+link. Listing is newest first; deleted attachments are omitted. Download checks
+the target's own permission: `task.view` for task, subtask and comment
+attachments, and `document.view` plus the document's visibility for document
+attachments.
 
-### 9.18 Chat
+### 9.18 Work documentation
+
+All routes require `Org` via header. A document records work done — a report,
+daily log, procedure, meeting notes or handover — and may be attached to a
+project and a task. Every route also answers `429` like the rest of the API.
+
+| Method   | Path                                        | Perm                | Errors                     |
+| -------- | ------------------------------------------- | ------------------- | -------------------------- |
+| `GET`    | `/documents` `?page&limit&projectId&taskId&type&status&authorId&q&visibility&workDateFrom&workDateTo` | `document.view` | `403` |
+| `POST`   | `/documents`                                | `document.create`   | `400`, `403`, `404`        |
+| `GET`    | `/documents/trash`                          | `document.view`     | `403`                      |
+| `POST`   | `/documents/{documentId}/restore`           | `document.update`   | `403`, `404`, `409`        |
+| `GET`    | `/documents/{documentId}`                   | `document.view`     | `403`, `404`               |
+| `PATCH`  | `/documents/{documentId}`                   | `document.update`   | `400`, `403`, `404`, `409` |
+| `DELETE` | `/documents/{documentId}`                   | `document.delete`   | `403`, `404`               |
+| `POST`   | `/documents/{documentId}/submit`            | `document.update`   | `400`, `403`, `404`, `409` |
+| `POST`   | `/documents/{documentId}/approve`           | `document.approve`  | `403`, `404`, `409`        |
+| `POST`   | `/documents/{documentId}/reject`            | `document.approve`  | `400`, `403`, `404`, `409` |
+| `POST`   | `/documents/{documentId}/archive`           | `document.update`   | `403`, `404`, `409`        |
+| `GET`    | `/documents/{documentId}/versions`          | `document.view`     | `403`, `404`               |
+| `GET`    | `/documents/{documentId}/versions/{version}` | `document.view`    | `403`, `404`               |
+
+Create body: `{ title, body?, type?, projectId?, taskId?, visibility?, workDate?, hours? }`.
+A task supplies its project, so passing only `taskId` is enough; passing a
+`projectId` that disagrees with the task is `400`. Both ids must belong to the
+active organization, otherwise `404`. `visibility` is `organization` (default)
+or `project`; `project` requires a project and narrows reads to the author,
+anyone holding `document.approve`, and active members of teams assigned to a
+task in that project. `workDate` is an ISO date (`YYYY-MM-DD`) and `hours` is
+0–24 with at most two decimals; both are optional and can be filtered with
+`workDateFrom` / `workDateTo` on the list route.
+
+The response adds `visibility`, `revision`, `workDate`, `hours`,
+`reviewedById`, `reviewedAt`, `reviewNote` and a `reviewer` object. Use
+`revision` for optimistic concurrency: send the revision you read on `PATCH`;
+a stale value is `409` instead of overwriting a newer edit.
+
+Lifecycle rules to encode in the UI:
+
+- **Versions.** Creating writes version 1. Every change to `title` or `body`
+  increments `currentVersion` and saves that snapshot, so the current text is
+  never the only copy. `GET …/versions` lists newest first without bodies;
+  `GET …/versions/{version}` returns the exact text of one.
+- **Editing reopens review.** Changing the text of a `submitted` or `approved`
+  document returns it to `draft` and clears `submittedAt`, `approvedAt`,
+  `approvedById`, `reviewedById`, `reviewedAt` and `reviewNote`. Approval
+  belongs to the text that was reviewed. Editing a `changes_requested`
+  document keeps that status and the reviewer's note so the author can see what
+  to fix.
+- **Transitions.** `submit` requires `draft` or `changes_requested` **and** a
+  non-empty body (`400` when empty, `409` otherwise). `approve` requires
+  `submitted`, accepts an optional `{ note? }`, and records the caller in
+  `approvedById` / `reviewedById`. `reject` requires `submitted` and a
+  non-empty `{ note }`, moves the document to `changes_requested`, records the
+  reviewer and clears the approval stamps. `archive` accepts any live document
+  and is `409` when already archived.
+- **Edit rights.** Updating, submitting, rejecting, approving, archiving or
+  restoring a document requires the caller to be its author or to hold
+  `document.approve`; everyone else with `document.update` gets `403`.
+- **Delete is soft.** The document leaves every ordinary read but keeps its
+  version history; `GET /documents/trash` lists deleted rows and `restore`
+  brings one back. `document.delete` is granted to the owner and project
+  manager; developers, testers and HR can write and edit but not delete or
+  approve.
+
+### 9.19 Chat
 
 All routes require `Org` via header. Direct channels narrow access to their
 participants; scoped rooms follow their project/task/subtask.
@@ -1430,6 +1502,8 @@ participants; scoped rooms follow their project/task/subtask.
 | `invitation.status`                                   | `pending`, `accepted`, `revoked`, `expired` (the last is reported, never stored) |
 | `project.status`                                      | `planned`, `active`, `on_hold`, `completed`, `cancelled`                         |
 | `milestone.status`                                    | `planned`, `in_progress`, `completed`, `cancelled`                               |
+| `document.status`                                     | `draft`, `submitted`, `approved`, `archived`                                     |
+| `document.type`                                       | `work_report`, `daily_log`, `sop`, `meeting_notes`, `handover`, `other`          |
 | `chat.channel.type`                                   | `organization`, `project`, `task`, `subtask`, `direct`                           |
 | `task.status`                                         | `todo`, `in_progress`, `in_review`, `done`, `cancelled`                          |
 | `task.priority`, `timeComplexity.name`                | `low`, `medium`, `high`, `critical`                                              |
@@ -1535,6 +1609,17 @@ Create body: `{ title, description?, assignedTo?, status?, dueDate? }`.
 
 **Milestone**: `id`, `projectId`, `name`, `description | null`, `status`,
 `dueDate | null`, `createdAt`/`updatedAt` ro.
+
+**Document**: `id`, `organizationId` ro, `projectId | null`, `taskId | null`,
+`authorId | null`, `author | null` (embedded `{ id, name, email }`), `type`,
+`title`, `body`, `status`, `currentVersion` ro, `submittedAt | null`,
+`approvedAt | null`, `approvedById | null`, `createdAt`/`updatedAt` ro. Create
+body: `{ title, body?, type?, projectId?, taskId? }`; update accepts those plus
+`projectId: null` / `taskId: null` to detach a scope.
+
+**DocumentVersion**: `id`, `documentId`, `version`, `title`, `body` (single
+version route only), `editedById | null`, `editedBy | null` (embedded
+`{ id, name, email }`), `createdAt` ro.
 
 **Comment**: `id`, `organizationId` ro, `projectId | null`, `taskId | null`,
 `subtaskId | null`, `author | null` (embedded `{ id, name, email }`),

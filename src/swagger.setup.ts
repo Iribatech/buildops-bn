@@ -50,6 +50,10 @@ const TAGS: [name: string, description: string][] = [
   ['subtasks', 'Subtasks under tasks, and the work assigned to you'],
   ['milestones', 'Project milestones and their target dates'],
   [
+    'documents',
+    'Work documentation: reports, daily logs, procedures and handover notes, with versions and approval',
+  ],
+  [
     'activity',
     'The organization activity trail: who changed what, newest first',
   ],

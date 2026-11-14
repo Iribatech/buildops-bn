@@ -14,11 +14,13 @@ import { Task } from '../task/task.entity.js';
 import { Subtask } from '../subtask/subtask.entity.js';
 import { User } from '../user/user.entity.js';
 import { Comment } from '../comment/comment.entity.js';
+import { Document } from '../document/document.entity.js';
 
 @Entity('attachments')
 @Index('IDX_attachments_org_created', ['organizationId', 'createdAt'])
 @Index('IDX_attachments_task', ['taskId'])
 @Index('IDX_attachments_comment', ['commentId'])
+@Index('IDX_attachments_document', ['documentId'])
 export class Attachment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -57,6 +59,13 @@ export class Attachment {
   @ManyToOne(() => Comment, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'comment_id' })
   comment: Comment | null;
+
+  @Column({ name: 'document_id', type: 'uuid', nullable: true })
+  documentId: string | null;
+
+  @ManyToOne(() => Document, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'document_id' })
+  document: Document | null;
 
   @Column({ name: 'uploader_id', type: 'uuid' })
   uploaderId: string;
@@ -99,6 +108,7 @@ export class Attachment {
       taskId: this.taskId,
       subtaskId: this.subtaskId,
       commentId: this.commentId,
+      documentId: this.documentId,
       uploaderId: this.uploaderId,
       createdAt: this.createdAt,
       url: `/api/v1/attachments/${this.id}/download`,

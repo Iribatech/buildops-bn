@@ -32,6 +32,7 @@ import { BadgeModule } from './badge/badge.module.js';
 import { TaskModule } from './task/task.module.js';
 import { SubtaskModule } from './subtask/subtask.module.js';
 import { MilestoneModule } from './milestone/milestone.module.js';
+import { DocumentModule } from './document/document.module.js';
 import { NotificationModule } from './notification/notification.module.js';
 import { TimeEntryModule } from './time-entry/time-entry.module.js';
 import { TimeComplexityModule } from './time-complexity/time-complexity.module.js';
@@ -132,6 +133,7 @@ import { ActivityContextInterceptor } from './activity/activity-context.intercep
     TaskModule,
     SubtaskModule,
     MilestoneModule,
+    DocumentModule,
     NotificationModule,
     ActivityModule,
     ChatModule,
