@@ -23,3 +23,4 @@ npm-debug.log*
 
 # Runtime attachment storage
 uploads/
+config.bat
