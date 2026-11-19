@@ -1,5 +1,7 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Organization } from '../organization/organization.entity.js';
+import { Department } from '../department/department.entity.js';
+import { User } from '../user/user.entity.js';
 
 @Entity('teams')
 export class Team {
@@ -21,6 +23,20 @@ export class Team {
 
   @Column({ type: 'varchar', length: 50, default: 'active' })
   status: string;
+
+  @Column({ name: 'department_id', type: 'uuid', nullable: true })
+  departmentId: string | null;
+
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'department_id' })
+  department: Department | null;
+
+  @Column({ name: 'lead_user_id', type: 'uuid', nullable: true })
+  leadUserId: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'lead_user_id' })
+  leadUser: User | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -56,6 +72,10 @@ export class Team {
       name: this.name,
       description: this.description,
       status: this.status,
+      departmentId: this.departmentId,
+      departmentName: this.department?.name ?? null,
+      leadUserId: this.leadUserId,
+      leadName: this.leadUser?.name ?? this.leadUser?.email ?? null,
       createdAt: this.createdAt,
     };
   }

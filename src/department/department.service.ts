@@ -12,6 +12,7 @@ import {
   type PaginationQueryDto,
 } from '../common/pagination.dto.js';
 import { Department } from './department.entity.js';
+import { RoleService } from '../role/role.service.js';
 import {
   CreateDepartmentDto,
   UpdateDepartmentDto,
@@ -22,6 +23,7 @@ export class DepartmentService {
   constructor(
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    private readonly roleService: RoleService,
   ) {}
 
   async list(
@@ -32,6 +34,7 @@ export class DepartmentService {
 
     const [items, total] = await this.departmentRepo.findAndCount({
       where: { organizationId },
+      relations: { headUser: true },
       order: { name: 'ASC' },
       skip,
       take: limit,
@@ -46,6 +49,7 @@ export class DepartmentService {
   ): Promise<Department> {
     const department = await this.departmentRepo.findOne({
       where: { id: departmentId, organizationId },
+      relations: { headUser: true },
     });
 
     if (!department) {
@@ -59,14 +63,24 @@ export class DepartmentService {
     organizationId: string,
     dto: CreateDepartmentDto,
   ): Promise<Department> {
-    return this.departmentRepo.save(
+    if (dto.headUserId) {
+      await this.roleService.assertAssignableMember(
+        organizationId,
+        dto.headUserId,
+      );
+    }
+
+    const department = await this.departmentRepo.save(
       this.departmentRepo.create({
         organizationId,
         name: this.normalizeName(dto.name),
         description: dto.description ?? null,
         status: 'active',
+        headUserId: dto.headUserId ?? null,
       }),
     );
+
+    return this.findOne(organizationId, department.id);
   }
 
   async update(
@@ -82,8 +96,17 @@ export class DepartmentService {
     if (dto.description !== undefined) {
       department.description = dto.description;
     }
+    if (dto.headUserId !== undefined) {
+      await this.roleService.assertAssignableMember(
+        organizationId,
+        dto.headUserId,
+      );
+      department.headUserId = dto.headUserId;
+      department.headUser = null;
+    }
 
-    return this.departmentRepo.save(department);
+    await this.departmentRepo.save(department);
+    return this.findOne(organizationId, departmentId);
   }
 
   async setStatus(

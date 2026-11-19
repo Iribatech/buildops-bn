@@ -17,6 +17,15 @@ import {
 import { PaginationQueryDto, type Paginated } from '../common/pagination.dto.js';
 import { PERMISSIONS } from '../common/permissions.js';
 import { ActivityResponseDto } from './dto/activity.dto.js';
+import {
+  ActivityBreakdownDto,
+  ActivityEventsQueryDto,
+  ActivityLeaderboardDto,
+  ActivityLeaderboardQueryDto,
+  ActivityReportQueryDto,
+  ActivityTimelineDto,
+  ActivityTimelineQueryDto,
+} from './dto/activity.dto.js';
 import { ActivityService } from './activity.service.js';
 
 const ActivityPageDto = PaginatedSchema(ActivityResponseDto, 'ActivityPage');
@@ -32,6 +41,97 @@ const ActivityPageDto = PaginatedSchema(ActivityResponseDto, 'ActivityPage');
 @Controller('activity')
 export class ActivityController {
   constructor(private readonly activity: ActivityService) {}
+
+  @Get('timeline')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.ANALYTICS_VIEW)
+  @ApiOperation({
+    summary: 'Activity volume over time',
+    description:
+      'Event counts per day or week for the active organization, including ' +
+      'empty buckets across the selected range.',
+  })
+  @ApiResponse({
+    description: 'Bucketed event counts',
+    status: 200,
+    type: ActivityTimelineDto,
+  })
+  @ApiErrors(400, 401, 403)
+  timeline(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Query() query: ActivityTimelineQueryDto,
+  ): Promise<ActivityTimelineDto> {
+    return this.activity.timeline(auth.organizationId, query);
+  }
+
+  @Get('breakdown')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.ANALYTICS_VIEW)
+  @ApiOperation({
+    summary: 'Activity breakdown by entity and action',
+    description:
+      'Event totals grouped by what they were about and what happened, ' +
+      'heaviest first.',
+  })
+  @ApiResponse({
+    description: 'Event totals per entity type and action',
+    status: 200,
+    type: ActivityBreakdownDto,
+  })
+  @ApiErrors(400, 401, 403)
+  breakdown(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Query() query: ActivityReportQueryDto,
+  ): Promise<ActivityBreakdownDto> {
+    return this.activity.breakdown(auth.organizationId, query);
+  }
+
+  @Get('leaderboard')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.ANALYTICS_VIEW)
+  @ApiOperation({
+    summary: 'Most active members',
+    description: 'Members ranked by the events they recorded in the range.',
+  })
+  @ApiResponse({
+    description: 'Members and their event counts',
+    status: 200,
+    type: ActivityLeaderboardDto,
+  })
+  @ApiErrors(400, 401, 403)
+  leaderboard(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Query() query: ActivityLeaderboardQueryDto,
+  ): Promise<ActivityLeaderboardDto> {
+    return this.activity.leaderboard(auth.organizationId, query);
+  }
+
+  @Get('events')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.ANALYTICS_VIEW)
+  @ApiOperation({
+    summary: 'List the organization activity feed',
+    description:
+      'Every recorded event in the active organization, newest first, ' +
+      'filterable by entity, action, actor, project and date range.',
+  })
+  @ApiResponse({
+    description: 'One page of activity',
+    status: 200,
+    type: ActivityPageDto,
+  })
+  @ApiErrors(400, 401, 403)
+  events(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Query() query: ActivityEventsQueryDto,
+  ): Promise<Paginated<ActivityResponseDto>> {
+    return this.activity
+      .listEvents(auth.organizationId, query)
+      .then((res) => ({
+        ...res,
+        items: res.items.map((item) => item.toResponse()),
+      })) as Promise<Paginated<ActivityResponseDto>>;
+  }
 
   @Get()
   @OrganizationHeader()

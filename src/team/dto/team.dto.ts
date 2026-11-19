@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayUnique,
+  IsArray,
   IsEmail,
   IsIn,
   IsOptional,
@@ -12,6 +14,7 @@ import {
   TEAM_MEMBER_STATUSES,
   TEAM_STATUSES,
 } from '../../common/enums.js';
+import { PaginationQueryDto } from '../../common/pagination.dto.js';
 
 export class CreateTeamDto {
   @ApiProperty({ example: 'Backend Guild' })
@@ -23,6 +26,36 @@ export class CreateTeamDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    example: 'b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f',
+    description: 'Department this team belongs to',
+  })
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    description: 'Active organization member who leads this team',
+  })
+  @IsOptional()
+  @IsUUID()
+  leadUserId?: string;
+
+  @ApiPropertyOptional({
+    example: [
+      '4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b',
+      '7e8f9a0b-1c2d-4e3f-8a4b-5c6d7e8f9a0b',
+    ],
+    description:
+      'Active organization members to add when the team is created. The lead is added automatically.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  memberUserIds?: string[];
 
   @ApiPropertyOptional({ enum: TEAM_STATUSES, default: 'active' })
   @IsOptional()
@@ -46,6 +79,22 @@ export class UpdateTeamDto {
   @IsOptional()
   @IsIn(TEAM_STATUSES)
   status?: string;
+
+  @ApiPropertyOptional({
+    example: 'b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f',
+    description: 'Move the team to another department',
+  })
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    description: 'Replace the team lead',
+  })
+  @IsOptional()
+  @IsUUID()
+  leadUserId?: string;
 }
 
 export class AddTeamMemberDto {
@@ -112,8 +161,33 @@ export class TeamResponseDto {
   @ApiProperty({ enum: TEAM_STATUSES, example: 'active' })
   status: string;
 
+  @ApiPropertyOptional({
+    example: 'b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f',
+    nullable: true,
+  })
+  departmentId: string | null;
+
+  @ApiPropertyOptional({ example: 'Preconstruction', nullable: true })
+  departmentName: string | null;
+
+  @ApiPropertyOptional({
+    example: '9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d',
+    nullable: true,
+  })
+  leadUserId: string | null;
+
+  @ApiPropertyOptional({ example: 'Aline Uwase', nullable: true })
+  leadName: string | null;
+
   @ApiProperty({ example: '2026-09-30T10:00:00.000Z' })
   createdAt: Date;
+}
+
+export class TeamQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ description: 'Filter by department' })
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
 }
 
 export class TeamMemberResponseDto {

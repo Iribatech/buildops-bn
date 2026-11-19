@@ -4256,6 +4256,94 @@ describe('published contract vs runtime (e2e)', () => {
       );
     });
 
+    it('/me/leave returns 200, 201, 400, 401, 404 and 409', async () => {
+      const asMember = (req: request.Test): request.Test =>
+        auth(memberToken, req).set('x-organization-id', organizationId);
+
+      await probe(
+        'post',
+        '/employees',
+        (req) =>
+          asOwner(req).send({
+            name: 'Self Service',
+            employeeNumber: 'HR-SELF',
+            userId: memberUserId,
+          }),
+        '201',
+      );
+
+      const overview = await probe('get', '/me/leave', asMember, '200');
+      expect(overview.body.userId ?? overview.body.employeeId).toEqual(
+        expect.any(String),
+      );
+      await probe(
+        'get',
+        '/me/leave',
+        (req) => asMember(req).query({ year: 1999 }),
+        '400',
+        'year out of range',
+      );
+      await probe('get', '/me/leave', (req) => req, '401', 'no token');
+      await probe(
+        'get',
+        '/me/leave',
+        (req) => asOwner(req),
+        '404',
+        'owner has no employee record',
+      );
+
+      await probe(
+        'post',
+        '/me/leave',
+        (req) => asMember(req).send({}),
+        '400',
+        'empty body',
+      );
+      await probe(
+        'post',
+        '/me/leave',
+        (req) => req.send({ leaveTypeId }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/me/leave',
+        (req) =>
+          asOwner(req).send({
+            leaveTypeId,
+            startDate: '2028-03-01',
+            endDate: '2028-03-03',
+          }),
+        '404',
+        'owner has no employee record',
+      );
+
+      await probe(
+        'post',
+        '/me/leave',
+        (req) =>
+          asMember(req).send({
+            leaveTypeId,
+            startDate: '2028-03-01',
+            endDate: '2028-03-03',
+          }),
+        '201',
+      );
+      await probe(
+        'post',
+        '/me/leave',
+        (req) =>
+          asMember(req).send({
+            leaveTypeId,
+            startDate: '2028-03-02',
+            endDate: '2028-03-04',
+          }),
+        '409',
+        'overlapping leave',
+      );
+    });
+
     it('GET /employees/{employeeId}/leave-balances returns 200, 400, 401, 403 and 404', async () => {
       const balances = await probe(
         'get',
@@ -6582,7 +6670,7 @@ describe('published contract vs runtime (e2e)', () => {
       );
     });
 
-    it('GET /activity routes return 200, 401 and 403', async () => {
+    it('GET /activity routes return 200, 400, 401 and 403', async () => {
       for (const path of [
         '/activity',
         `/activity/task/${taskId}`,
@@ -6592,6 +6680,30 @@ describe('published contract vs runtime (e2e)', () => {
         await probe('get', path, (req) => asOwner(req), '200');
         await probe('get', path, (req) => req, '401', 'no token');
         await probe('get', path, (req) => asOutsider(req), '403', 'not a member');
+      }
+
+      for (const path of [
+        '/activity/timeline',
+        '/activity/breakdown',
+        '/activity/leaderboard',
+        '/activity/events',
+      ]) {
+        await probe('get', path, (req) => asOwner(req), '200');
+        await probe(
+          'get',
+          path,
+          (req) => asOwner(req).query({ from: 'not-a-date' }),
+          '400',
+          'invalid range',
+        );
+        await probe('get', path, (req) => req, '401', 'no token');
+        await probe(
+          'get',
+          path,
+          (req) => asOutsider(req),
+          '403',
+          'not a member',
+        );
       }
     });
 
@@ -6977,6 +7089,81 @@ describe('published contract vs runtime (e2e)', () => {
         (req) => asOutsider(req),
         '403',
         'not a member',
+      );
+    });
+
+    it('chat attachments return 200, 201, 400, 401, 403 and 404', async () => {
+      await probe(
+        'post',
+        '/attachments/chat-upload',
+        (req) => req.query({ channelId }),
+        '401',
+        'no token',
+      );
+      await probe(
+        'post',
+        '/attachments/chat-upload',
+        (req) => asOutsider(req).query({ channelId }),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'post',
+        '/attachments/chat-upload',
+        (req) => asOwner(req).query({ channelId }),
+        '400',
+        'no file',
+      );
+      await probe(
+        'post',
+        '/attachments/chat-upload',
+        (req) =>
+          asOwner(req)
+            .query({ channelId: missingId })
+            .attach('file', Buffer.from('hello'), 'hello.txt'),
+        '404',
+        'unknown channel',
+      );
+
+      const uploaded = await probe(
+        'post',
+        '/attachments/chat-upload',
+        (req) =>
+          asOwner(req)
+            .query({ channelId })
+            .attach('file', Buffer.from('hello'), {
+              filename: 'hello.txt',
+              contentType: 'text/plain',
+            }),
+        '201',
+      );
+
+      await probe(
+        'get',
+        `/attachments/chat/${uploaded.body.id}/download`,
+        (req) => asOwner(req),
+        '200',
+      );
+      await probe(
+        'get',
+        `/attachments/chat/${uploaded.body.id}/download`,
+        (req) => req,
+        '401',
+        'no token',
+      );
+      await probe(
+        'get',
+        `/attachments/chat/${uploaded.body.id}/download`,
+        (req) => asOutsider(req),
+        '403',
+        'not a member',
+      );
+      await probe(
+        'get',
+        `/attachments/chat/${missingId}/download`,
+        (req) => asOwner(req),
+        '404',
+        'unknown attachment',
       );
     });
 

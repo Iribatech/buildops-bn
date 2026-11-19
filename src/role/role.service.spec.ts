@@ -145,7 +145,13 @@ describe('RoleService guard rails', () => {
   describe('replacePermissions', () => {
     it('refuses removing role.update from the actor own role', async () => {
       roleRepo.findOne.mockResolvedValue(
-        roleRow({ userId: 'actor-1', permissions: [] }),
+        roleRow({
+          userId: 'actor-1',
+          permissions: [
+            { name: PERMISSIONS.ROLE_UPDATE },
+            { name: PERMISSIONS.DASHBOARD_VIEW },
+          ],
+        }),
       );
 
       await expect(
@@ -162,7 +168,15 @@ describe('RoleService guard rails', () => {
     });
 
     it('allows the actor to edit their own role while keeping role.update', async () => {
-      roleRepo.findOne.mockResolvedValue(roleRow({ userId: 'actor-1' }));
+      roleRepo.findOne.mockResolvedValue(
+        roleRow({
+          userId: 'actor-1',
+          permissions: [
+            { name: PERMISSIONS.ROLE_UPDATE },
+            { name: PERMISSIONS.DASHBOARD_VIEW },
+          ],
+        }),
+      );
       permissionRepo.save.mockResolvedValue([]);
 
       const result = await service.replacePermissions(
@@ -177,7 +191,12 @@ describe('RoleService guard rails', () => {
     });
 
     it('leaves roles held by another member fully editable', async () => {
-      roleRepo.findOne.mockResolvedValue(roleRow({ userId: 'member-1' }));
+      roleRepo.findOne.mockResolvedValue(
+        roleRow({
+          userId: 'member-1',
+          permissions: [{ name: PERMISSIONS.DASHBOARD_VIEW }],
+        }),
+      );
 
       const result = await service.replacePermissions(
         'org-1',

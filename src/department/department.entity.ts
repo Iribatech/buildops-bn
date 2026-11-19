@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Organization } from '../organization/organization.entity.js';
+import { User } from '../user/user.entity.js';
 import { DEPARTMENT_STATUSES } from '../common/enums.js';
 
 const inList = (values: readonly string[]): string =>
@@ -36,6 +37,13 @@ export class Department {
   @Column({ type: 'varchar', length: 50, default: 'active' })
   status: string;
 
+  @Column({ name: 'head_user_id', type: 'uuid', nullable: true })
+  headUserId: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'head_user_id' })
+  headUser: User | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -49,6 +57,8 @@ export class Department {
       name: this.name,
       description: this.description,
       status: this.status,
+      headUserId: this.headUserId,
+      headName: this.headUser?.name ?? this.headUser?.email ?? null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -5002,6 +5002,214 @@
         ]
       }
     },
+    "/me/leave": {
+      "get": {
+        "description": "The signed-in member’s own employee record, active leave catalogue, current-year balances and latest requests. The employee is resolved from the authenticated account, so no employee id is accepted from the client.",
+        "operationId": "MyLeaveController_overview",
+        "parameters": [
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Calendar year, defaults to the current year",
+            "schema": {
+              "minimum": 2000,
+              "maximum": 2100,
+              "example": 2026,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My leave overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyLeaveResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my leave",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        }
+      },
+      "post": {
+        "description": "Creates a pending request for the signed-in member’s own employee record. The employee cannot be chosen by the client; HR still approves or rejects the request.",
+        "operationId": "MyLeaveController_create",
+        "parameters": [
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMyLeaveRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Leave request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaveRequestResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting state: the resource already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request my leave",
+        "tags": [
+          "leave"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        }
+      }
+    },
     "/employees/{employeeId}/leave-balances": {
       "get": {
         "description": "Entitlement, approved, pending and remaining days per leave type for a calendar year. Approved days spanning the year boundary are counted only inside that year.",
@@ -5751,6 +5959,573 @@
         },
         "x-permissions": [
           "employee.update"
+        ]
+      }
+    },
+    "/activity/timeline": {
+      "get": {
+        "description": "Event counts per day or week for the active organization, including empty buckets across the selected range.",
+        "operationId": "ActivityController_timeline",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound; defaults to 30 days ago",
+            "schema": {
+              "example": "2026-09-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound; defaults to now",
+            "schema": {
+              "example": "2026-09-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "day",
+              "type": "string",
+              "enum": [
+                "day",
+                "week"
+              ]
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bucketed event counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityTimelineDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activity volume over time",
+        "tags": [
+          "activity"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "analytics.view"
+        ]
+      }
+    },
+    "/activity/breakdown": {
+      "get": {
+        "description": "Event totals grouped by what they were about and what happened, heaviest first.",
+        "operationId": "ActivityController_breakdown",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound; defaults to 30 days ago",
+            "schema": {
+              "example": "2026-09-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound; defaults to now",
+            "schema": {
+              "example": "2026-09-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event totals per entity type and action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityBreakdownDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activity breakdown by entity and action",
+        "tags": [
+          "activity"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "analytics.view"
+        ]
+      }
+    },
+    "/activity/leaderboard": {
+      "get": {
+        "description": "Members ranked by the events they recorded in the range.",
+        "operationId": "ActivityController_leaderboard",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound; defaults to 30 days ago",
+            "schema": {
+              "example": "2026-09-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound; defaults to now",
+            "schema": {
+              "example": "2026-09-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 8,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members and their event counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityLeaderboardDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Most active members",
+        "tags": [
+          "activity"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "analytics.view"
+        ]
+      }
+    },
+    "/activity/events": {
+      "get": {
+        "description": "Every recorded event in the active organization, newest first, filterable by entity, action, actor, project and date range.",
+        "operationId": "ActivityController_events",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound; defaults to 30 days ago",
+            "schema": {
+              "example": "2026-09-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound; defaults to now",
+            "schema": {
+              "example": "2026-09-30",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "task",
+                "subtask",
+                "project",
+                "milestone",
+                "team",
+                "department",
+                "human_resource",
+                "client",
+                "badge",
+                "comment",
+                "document",
+                "employee",
+                "leave_type",
+                "leave_request",
+                "performance_review",
+                "time_entry",
+                "chat_channel",
+                "chat_message",
+                "invitation",
+                "role",
+                "member"
+              ]
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created",
+                "updated",
+                "deleted",
+                "restored",
+                "status_changed",
+                "assigned",
+                "reassigned",
+                "unassigned",
+                "activated",
+                "deactivated",
+                "commented",
+                "moved",
+                "completed",
+                "reopened",
+                "accepted"
+              ]
+            }
+          },
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "e7f8a9b0-c1d2-4e3f-8a9b-0c1d2e3f4a5b",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the organization activity feed",
+        "tags": [
+          "activity"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "analytics.view"
         ]
       }
     },
@@ -6753,6 +7528,15 @@
               "maximum": 100,
               "default": 20,
               "type": "number"
+            }
+          },
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by department",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -14982,7 +15766,7 @@
         ]
       },
       "post": {
-        "description": "Creates a subtask. When assignedTo is set, the user must be an active member of the organization the task belongs to. Omit it to leave the subtask in the unassigned backlog.",
+        "description": "Creates a subtask. On a teamed task, only the team lead or a project manager may split the work, and an assignee must be an active member of that team. Omit assignedTo to leave the subtask in the unassigned backlog.",
         "operationId": "SubtaskController_createSubtask",
         "parameters": [
           {
@@ -18829,6 +19613,209 @@
         ]
       }
     },
+    "/attachments/chat-upload": {
+      "post": {
+        "description": "Multipart upload with the file in the `file` field and the room in `channelId`. The caller has to be able to see the room.",
+        "operationId": "AttachmentController_uploadForChat",
+        "parameters": [
+          {
+            "name": "channelId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The stored attachment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one message per invalid field) or a business rule was violated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a file into a chat channel",
+        "tags": [
+          "attachments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "chat.create"
+        ]
+      }
+    },
+    "/attachments/chat/{attachmentId}/download": {
+      "get": {
+        "description": "Streams a file attached to a chat message. Requires the same chat access as the room it was sent in.",
+        "operationId": "AttachmentController_downloadForChat",
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-organization-id",
+            "in": "header",
+            "description": "Active organization id. Optional on /organizations/:organizationId routes, required on every other organization-scoped route.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file contents"
+          },
+          "401": {
+            "description": "Missing, invalid or expired access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied, or you are not a member of the active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found, or it belongs to another organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. The `default` bucket allows 300 requests per 60 s per client IP; the auth routes use the stricter `auth` bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download a chat attachment",
+        "tags": [
+          "attachments"
+        ],
+        "x-auth": {
+          "required": true,
+          "scheme": "bearer",
+          "context": "organization"
+        },
+        "x-organization-context": {
+          "required": true,
+          "header": "x-organization-id",
+          "pathParameter": "organizationId"
+        },
+        "x-permissions": [
+          "chat.view"
+        ]
+      }
+    },
     "/attachments/task/{taskId}": {
       "get": {
         "description": "Every live attachment on a task, newest first.",
@@ -22238,6 +23225,10 @@
   },
   "tags": [
     {
+      "name": "health",
+      "description": "Liveness and public API information"
+    },
+    {
       "name": "auth",
       "description": "Registration, email verification, login, password reset, profile"
     },
@@ -24094,6 +25085,107 @@
           }
         }
       },
+      "MyLeaveTypeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "name": {
+            "type": "string",
+            "example": "Annual Leave"
+          },
+          "paid": {
+            "type": "boolean",
+            "example": true
+          },
+          "defaultEntitlementDays": {
+            "type": "number",
+            "example": 20
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "paid",
+          "defaultEntitlementDays"
+        ]
+      },
+      "MyLeaveResponseDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "example": "5b4c3d2e-1f0a-4b9c-8d7e-6f5a4b3c2d1e"
+          },
+          "employeeName": {
+            "type": "string",
+            "example": "Jordan Ellis"
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Operations",
+            "nullable": true
+          },
+          "year": {
+            "type": "number",
+            "example": 2026
+          },
+          "balances": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "leaveTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyLeaveTypeDto"
+            }
+          },
+          "requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaveRequestResponseDto"
+            }
+          }
+        },
+        "required": [
+          "employeeId",
+          "employeeName",
+          "year",
+          "balances",
+          "leaveTypes",
+          "requests"
+        ]
+      },
+      "CreateMyLeaveRequestDto": {
+        "type": "object",
+        "properties": {
+          "leaveTypeId": {
+            "type": "string",
+            "example": "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-12-21"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-12-31"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Family holiday."
+          }
+        },
+        "required": [
+          "leaveTypeId",
+          "startDate",
+          "endDate"
+        ]
+      },
       "LeaveBalanceResponseDto": {
         "type": "object",
         "properties": {
@@ -24522,6 +25614,193 @@
           "status"
         ]
       },
+      "ActivityTimelineBucketDto": {
+        "type": "object",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "example": "2026-09-30"
+          },
+          "count": {
+            "type": "number",
+            "example": 12
+          }
+        },
+        "required": [
+          "bucket",
+          "count"
+        ]
+      },
+      "ActivityTimelineDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "example": "2026-09-01T00:00:00.000Z"
+          },
+          "to": {
+            "type": "string",
+            "example": "2026-09-30T23:59:59.999Z"
+          },
+          "groupBy": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week"
+            ],
+            "example": "day"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityTimelineBucketDto"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "groupBy",
+          "buckets"
+        ]
+      },
+      "ActivityBreakdownItemDto": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "enum": [
+              "task",
+              "subtask",
+              "project",
+              "milestone",
+              "team",
+              "department",
+              "human_resource",
+              "client",
+              "badge",
+              "comment",
+              "document",
+              "employee",
+              "leave_type",
+              "leave_request",
+              "performance_review",
+              "time_entry",
+              "chat_channel",
+              "chat_message",
+              "invitation",
+              "role",
+              "member"
+            ],
+            "example": "task"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "deleted",
+              "restored",
+              "status_changed",
+              "assigned",
+              "reassigned",
+              "unassigned",
+              "activated",
+              "deactivated",
+              "commented",
+              "moved",
+              "completed",
+              "reopened",
+              "accepted"
+            ],
+            "example": "updated"
+          },
+          "count": {
+            "type": "number",
+            "example": 9
+          }
+        },
+        "required": [
+          "entityType",
+          "action",
+          "count"
+        ]
+      },
+      "ActivityBreakdownDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "example": "2026-09-01T00:00:00.000Z"
+          },
+          "to": {
+            "type": "string",
+            "example": "2026-09-30T23:59:59.999Z"
+          },
+          "total": {
+            "type": "number",
+            "example": 42
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityBreakdownItemDto"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "total",
+          "items"
+        ]
+      },
+      "ActivityLeaderboardEntryDto": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "name": {
+            "type": "object",
+            "example": "Ada Login",
+            "nullable": true
+          },
+          "count": {
+            "type": "number",
+            "example": 23
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "ActivityLeaderboardDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "example": "2026-09-01T00:00:00.000Z"
+          },
+          "to": {
+            "type": "string",
+            "example": "2026-09-30T23:59:59.999Z"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityLeaderboardEntryDto"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "entries"
+        ]
+      },
       "ActivityActorDto": {
         "type": "object",
         "properties": {
@@ -24718,6 +25997,16 @@
             "type": "string",
             "format": "uuid",
             "description": "The role the invitee receives on acceptance: a `roles` row of this organization that nobody holds yet. Naming it here is what lets a role an administrator built travel with the invitation, instead of the invitee receiving whichever built-in template shares its name. Must belong to this organization and must be unassigned."
+          },
+          "departmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The department the invitee is being hired into. Informational — carried in the invitation email and available to HR for pre-filling the employee record, but does not gate acceptance."
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The team the invitee is being assigned to. Informational — carried in the invitation email and available to HR for pre-filling team membership, but does not gate acceptance."
           }
         },
         "required": [
@@ -24742,6 +26031,11 @@
           "templateKey": {
             "type": "string",
             "example": "developer"
+          },
+          "roleId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The role row this invitation grants on acceptance, when the inviter named one."
           },
           "roleName": {
             "type": "string",
@@ -24778,6 +26072,16 @@
             "format": "date-time",
             "type": "string",
             "example": "2026-10-06T09:00:00.000Z"
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance (HR context)."
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance (HR context)."
           },
           "invitationToken": {
             "type": "string",
@@ -24826,6 +26130,11 @@
             "type": "string",
             "example": "developer"
           },
+          "roleId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The role row this invitation grants on acceptance, when the inviter named one."
+          },
           "roleName": {
             "type": "string",
             "example": "Developer"
@@ -24861,6 +26170,16 @@
             "format": "date-time",
             "type": "string",
             "example": "2026-10-06T09:00:00.000Z"
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance (HR context)."
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance (HR context)."
           }
         },
         "required": [
@@ -24923,6 +26242,24 @@
             "type": "boolean",
             "example": false,
             "description": "Whether an account already exists for this address. False is the answer that makes the next step ask for a name and a password."
+          },
+          "departmentId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The department the invitee joins on acceptance, when chosen."
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Delivery"
+          },
+          "teamId": {
+            "type": "object",
+            "format": "uuid",
+            "description": "The team the invitee joins on acceptance, when chosen."
+          },
+          "teamName": {
+            "type": "object",
+            "example": "Structures"
           }
         },
         "required": [
@@ -25020,6 +26357,27 @@
             "type": "string",
             "example": "Services and integrations squad."
           },
+          "departmentId": {
+            "type": "string",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "description": "Department this team belongs to"
+          },
+          "leadUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member who leads this team"
+          },
+          "memberUserIds": {
+            "example": [
+              "4c1f5c66-2f9e-4f5c-8b2a-9c0d1e2f3a4b",
+              "7e8f9a0b-1c2d-4e3f-8a4b-5c6d7e8f9a0b"
+            ],
+            "description": "Active organization members to add when the team is created. The lead is added automatically.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -25061,6 +26419,26 @@
               "archived"
             ],
             "example": "active"
+          },
+          "departmentId": {
+            "type": "object",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "nullable": true
+          },
+          "departmentName": {
+            "type": "object",
+            "example": "Preconstruction",
+            "nullable": true
+          },
+          "leadUserId": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "leadName": {
+            "type": "object",
+            "example": "Aline Uwase",
+            "nullable": true
           },
           "createdAt": {
             "format": "date-time",
@@ -25163,6 +26541,16 @@
               "inactive",
               "archived"
             ]
+          },
+          "departmentId": {
+            "type": "string",
+            "example": "b7d8e9f0-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            "description": "Move the team to another department"
+          },
+          "leadUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Replace the team lead"
           }
         }
       },
@@ -25311,6 +26699,11 @@
           "description": {
             "type": "string",
             "example": "Estimating, bid preparation, and preconstruction planning."
+          },
+          "headUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member accountable for this department"
           }
         },
         "required": [
@@ -25344,6 +26737,16 @@
               "inactive"
             ],
             "example": "active"
+          },
+          "headUserId": {
+            "type": "object",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "nullable": true
+          },
+          "headName": {
+            "type": "object",
+            "example": "Aline Uwase",
+            "nullable": true
           },
           "createdAt": {
             "format": "date-time",
@@ -25414,6 +26817,11 @@
           "description": {
             "type": "string",
             "example": "Estimating, bid preparation, and preconstruction planning."
+          },
+          "headUserId": {
+            "type": "string",
+            "example": "9a2b7c1d-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+            "description": "Active organization member accountable for this department"
           }
         }
       },

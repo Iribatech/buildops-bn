@@ -44,6 +44,7 @@ const HTTP_METHODS = ['get', 'post', 'patch', 'put', 'delete'];
  */
 const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   // Public entry points: the API identity and the liveness probe.
+
   ['GET', '/', ['200']],
   ['GET', '/health', ['200']],
   // Identity: registration, verification, credentials and the session itself.
@@ -172,6 +173,9 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['POST', '/leave-requests/{leaveRequestId}/approve', ['200']],
   ['POST', '/leave-requests/{leaveRequestId}/reject', ['200']],
   ['POST', '/leave-requests/{leaveRequestId}/cancel', ['200']],
+  // A member's own leave, resolved from the authenticated account.
+  ['GET', '/me/leave', ['200']],
+  ['POST', '/me/leave', ['201']],
   ['GET', '/employees/{employeeId}/leave-balances', ['200']],
   // Performance reviews move draft -> submitted -> acknowledged.
   ['POST', '/performance-reviews', ['201']],
@@ -272,8 +276,13 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['GET', '/milestones/{milestoneId}', ['200']],
   ['PATCH', '/milestones/{milestoneId}', ['200']],
   ['DELETE', '/milestones/{milestoneId}', ['200']],
-  // The activity trail, read-only and filterable by task, project or entity.
+  // Read-only activity reports and the raw trail.
+  ['GET', '/activity/timeline', ['200']],
+  ['GET', '/activity/breakdown', ['200']],
+  ['GET', '/activity/leaderboard', ['200']],
+  ['GET', '/activity/events', ['200']],
   ['GET', '/activity', ['200']],
+
   ['GET', '/activity/task/{taskId}', ['200']],
   ['GET', '/activity/project/{projectId}', ['200']],
   ['GET', '/activity/entity/{entityType}/{entityId}', ['200']],
@@ -285,8 +294,11 @@ const DOCUMENTED_OPERATIONS: [string, string, string[]][] = [
   ['DELETE', '/comments/{commentId}', ['200']],
   // Attachments are downloaded through the API, never from a public URL.
   ['POST', '/attachments/upload', ['201']],
+  ['POST', '/attachments/chat-upload', ['201']],
   ['GET', '/attachments/task/{taskId}', ['200']],
+  ['GET', '/attachments/chat/{attachmentId}/download', ['200']],
   ['GET', '/attachments/{attachmentId}/download', ['200']],
+
   ['POST', '/attachments/document/{documentId}', ['201']],
   ['GET', '/attachments/document/{documentId}', ['200']],
   // Work documentation, with versions and a draft -> submitted -> approved flow.

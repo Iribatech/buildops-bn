@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,8 @@ import type { PermissionName } from '../common/permissions.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { IssuedSession, SessionClient } from '../auth/session.service.js';
 import { SignedTokens, hashToken } from '../auth/signed-tokens.js';
+import { Department } from '../department/department.entity.js';
+import { EmployeeService } from '../employee/employee.service.js';
 import {
   dispatchEmail,
   emailLink,
@@ -24,6 +27,9 @@ import { MailService } from '../mail/mail.service.js';
 import { Organization } from '../organization/organization.entity.js';
 import type { Role } from '../role/role.entity.js';
 import { RoleService } from '../role/role.service.js';
+import { Team } from '../team/team.entity.js';
+import { TeamService } from '../team/team.service.js';
+import type { User } from '../user/user.entity.js';
 import { UserService } from '../user/user.service.js';
 import { OrganizationInvitation } from './invitation.entity.js';
 import { recordActivity } from '../activity/record-activity.js';
@@ -77,13 +83,21 @@ export type AcceptInvitationResult = AcceptInvitationResponseDto & {
  */
 @Injectable()
 export class InvitationService {
+  private readonly logger = new Logger(InvitationService.name);
+
   constructor(
     @InjectRepository(OrganizationInvitation)
     private readonly invitationRepo: Repository<OrganizationInvitation>,
     @InjectRepository(Organization)
     private readonly organizationRepo: Repository<Organization>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(Team)
+    private readonly teamRepo: Repository<Team>,
     private readonly roleService: RoleService,
     private readonly userService: UserService,
+    private readonly employeeService: EmployeeService,
+    private readonly teamService: TeamService,
     private readonly mailService: MailService,
     private readonly authService: AuthService,
     private readonly config: ConfigService,
@@ -102,6 +116,7 @@ export class InvitationService {
     // message that lists what is allowed instead of a generic validation error.
     const template = this.roleService.templateFor(dto.templateKey ?? 'viewer');
     const organization = await this.requireOrganization(organizationId);
+    await this.assertHrPlacement(organizationId, dto.departmentId, dto.teamId);
 
     /**
      * The role this invitation grants, when one was named.
@@ -148,6 +163,8 @@ export class InvitationService {
             status: 'pending',
             expiresAt: new Date(Date.now() + INVITATION_TTL_MS),
             invitedBy: actorUserId,
+            departmentId: dto.departmentId ?? null,
+            teamId: dto.teamId ?? null,
           }),
           'An invitation for that email is already pending. Revoke it first to send a new one.',
           manager,
@@ -262,6 +279,10 @@ export class InvitationService {
       status: invitation.reportedStatus(),
       expiresAt: invitation.expiresAt,
       accountExists: invitee !== null,
+      departmentId: invitation.departmentId,
+      departmentName: invitation.department?.name ?? null,
+      teamId: invitation.teamId,
+      teamName: invitation.team?.name ?? null,
     };
   }
 
@@ -310,6 +331,7 @@ export class InvitationService {
     const user = await this.ensureAccount(invitation, dto, invitee);
 
     const role = await this.grantInvitationRole(invitation, user.id);
+    await this.applyHrPlacement(invitation, user, dto.name);
 
     invitation.status = 'accepted';
     invitation.acceptedAt = new Date();
@@ -343,6 +365,115 @@ export class InvitationService {
   }
 
   // --- helpers -------------------------------------------------------------
+
+  /**
+   * Checks the HR context before the invitation row is written.
+   *
+   * The screen only offers teams fetched for the chosen department, but the API
+   * is the enforcement point: a team id from another organization would
+   * otherwise be stored and later applied to the wrong tenant, and a team from
+   * a different department would contradict the pair the inviter chose. Both
+   * refusals happen while the inviter is still on the form, not when the
+   * invitee accepts days later.
+   */
+  private async assertHrPlacement(
+    organizationId: string,
+    departmentId?: string,
+    teamId?: string,
+  ): Promise<void> {
+    if (departmentId) {
+      const department = await this.departmentRepo.findOne({
+        where: { id: departmentId, organizationId },
+      });
+
+      if (!department) {
+        throw new BadRequestException(
+          'The department must belong to this organization',
+        );
+      }
+    }
+
+    if (!teamId) {
+      return;
+    }
+
+    const team = await this.teamRepo.findOne({
+      where: { id: teamId, organizationId },
+    });
+
+    if (!team) {
+      throw new BadRequestException(
+        'The team must belong to this organization',
+      );
+    }
+
+    if (departmentId && team.departmentId !== departmentId) {
+      throw new BadRequestException(
+        'The team must be under the selected department',
+      );
+    }
+  }
+
+  /**
+   * Applies the department and team the invitation promised.
+   *
+   * The invitation is what makes somebody an employee, not just a member: a
+   * department selection becomes an employee record, and a team selection
+   * becomes a team membership. Both run after the role is granted because the
+   * employee record needs an active membership and team membership requires
+   * one too.
+   *
+   * Neither failure rolls back the acceptance. The person has already proved
+   * their mailbox and been given a seat; a department deleted in the meantime
+   * (the FK is `SET NULL`) or a team that cannot take them should not turn the
+   * emailed link into a dead end. The warning is the signal for HR to finish
+   * the record by hand, and the rest of the join stands.
+   */
+  private async applyHrPlacement(
+    invitation: OrganizationInvitation,
+    user: User,
+    invitedName?: string,
+  ): Promise<void> {
+    if (!invitation.departmentId && !invitation.teamId) {
+      return;
+    }
+
+    try {
+      await this.employeeService.ensureFromInvitation(
+        invitation.organizationId,
+        user.id,
+        {
+          name: invitedName ?? user.name,
+          email: user.email,
+          departmentId: invitation.departmentId,
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Invitation ${invitation.id} accepted but the employee record could not be created: ${
+          (error as Error).message
+        }`,
+      );
+    }
+
+    if (!invitation.teamId) {
+      return;
+    }
+
+    try {
+      await this.teamService.addMember(
+        invitation.organizationId,
+        invitation.teamId,
+        { userId: user.id },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Invitation ${invitation.id} accepted but the member could not be added to team ${invitation.teamId}: ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
 
   /**
    * The role named by an invitation, if it can still be granted.
@@ -504,6 +635,7 @@ export class InvitationService {
 
     const invitation = await this.invitationRepo.findOne({
       where: { tokenHash: hashToken(token) },
+      relations: { department: true, team: true },
     });
 
     if (!invitation) {

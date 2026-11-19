@@ -8,6 +8,7 @@ import { API_PREFIX } from './bootstrap.js';
  * thirteen controllers.
  */
 const TAGS: [name: string, description: string][] = [
+  ['health', 'Liveness and public API information'],
   ['auth', 'Registration, email verification, login, password reset, profile'],
   ['plans', 'Public catalogue of subscription plans and their capacity limits'],
   [

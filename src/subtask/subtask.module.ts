@@ -6,6 +6,7 @@ import { Project } from '../project/project.entity.js';
 import { RoleModule } from '../role/role.module.js';
 import { Task } from '../task/task.entity.js';
 import { TaskModule } from '../task/task.module.js';
+import { TeamModule } from '../team/team.module.js';
 import { SubtaskController } from './subtask.controller.js';
 import { SubtaskFeedController } from './subtask-feed.controller.js';
 import { Subtask } from './subtask.entity.js';
@@ -24,6 +25,7 @@ import { AuthModule } from '../auth/auth.module.js';
     // The routes are nested under a task, so the parent task has to be resolved
     // (and its existence proven) before a subtask is read or written.
     TaskModule,
+    TeamModule,
     // For the membership check behind assignment, and the assignable-member
     // list the picker reads.
     RoleModule,

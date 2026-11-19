@@ -22,13 +22,13 @@ generated OpenAPI document (see [Live spec](#1-live-spec)).
 Every route below lives under the global prefix `api/v1` — include it in your
 `baseURL` so you never hard-code it in a path. `PORT` overrides `3000`.
 
-The document covers **197 operations across 134 paths** in 30 tag groups —
+The document covers **220 operations across 152 paths** in 31 tag groups —
 `health`, `auth`, `plans`, `subscription`, `billing`, `organizations`,
 `workspace`, `roles`, `invitations`, `teams`, `departments`, `employees`,
 `leave`, `performance-reviews`, `human-resources`, `clients`, `projects`,
-`badges`, `tasks`, `subtasks`, `milestones`, `activity`, `comments`,
-`attachments`, `notifications`, `time-entries`, `time-complexity`, `dashboard`,
-`chat` and `settings`. Where the document and this guide disagree, treat the
+`badges`, `tasks`, `subtasks`, `milestones`, `documents`, `activity`, `comments`,
+`attachments`, `notifications`, `chat`, `time-entries`, `time-complexity`,
+`dashboard` and `settings`. Where the document and this guide disagree, treat the
 Swagger document as the authority on shape and this guide as the authority on
 behaviour.
 
@@ -1117,6 +1117,19 @@ range intersection. Balances default to the current year (allowed 2000–2100) a
 return `entitlementDays`, `approvedDays`, `pendingDays` and `remainingDays` per
 leave type.
 
+A member can also work with their own leave without an employee id; `Org` is
+still required via header.
+
+| Method | Path         | Perm | Errors           |
+| ------ | ------------ | ---- | ---------------- |
+| `GET`  | `/me/leave` `?year` | — | `400`, `404` |
+| `POST` | `/me/leave`  | —    | `400`, `404`, `409` |
+
+`GET` returns the caller's employee record, the active leave types and the
+current-year balances and latest requests. `POST` accepts
+`{ leaveTypeId, startDate, endDate, reason? }`: the employee is resolved from the
+token, so an `employeeId` in the body is ignored.
+
 ### 9.9 Performance reviews
 
 All routes: `Org` required via header.
@@ -1321,6 +1334,16 @@ header and answer `200`, `401` and `403`.
 | `GET`  | `/activity/task/{taskId}` `?page&limit` | `task.view`      |
 | `GET`  | `/activity/project/{projectId}` `?page&limit` | `project.view` |
 | `GET`  | `/activity/entity/{entityType}/{entityId}` `?page&limit` | `task.view` |
+| `GET`  | `/activity/timeline` `?from&to&groupBy`  | `analytics.view` |
+| `GET`  | `/activity/breakdown` `?from&to`        | `analytics.view` |
+| `GET`  | `/activity/leaderboard` `?from&to&limit` | `analytics.view` |
+| `GET`  | `/activity/events` `?page&limit&from&to&entityType&action&actorId&projectId` | `analytics.view` |
+
+The report routes need `analytics.view` instead of `task.view`, and answer `400`
+for an invalid or over-long (more than 366 days) range. `timeline` fills empty
+day or week buckets; `breakdown` groups by entity type and action;
+`leaderboard` ranks actors; `events` is the paginated raw trail. Dates are
+inclusive `YYYY-MM-DD` values, defaulting to the last 30 days.
 
 An `ActivityResponseDto` carries `id`, `entityType`, `entityId`, `action`,
 `title`, `body | null`, `projectId | null`, `taskId | null`,
@@ -1351,7 +1374,9 @@ Attachments require `Org` via header.
 | Method | Path                                   | Perm               | Errors              |
 | ------ | -------------------------------------- | ------------------ | ------------------- |
 | `POST` | `/attachments/upload`                  | `task.update`      | `400`, `403`, `404` |
+| `POST` | `/attachments/chat-upload` `?channelId` | `chat.create`     | `400`, `403`, `404` |
 | `GET`  | `/attachments/task/{taskId}`           | `task.view`        | `403`               |
+| `GET`  | `/attachments/chat/{attachmentId}/download` | `chat.view`  | `403`, `404`        |
 | `POST` | `/attachments/document/{documentId}`   | `document.update`  | `400`, `403`, `404` |
 | `GET`  | `/attachments/document/{documentId}`   | `document.view`    | `403`, `404`        |
 | `GET`  | `/attachments/{attachmentId}/download` | target permission  | `403`, `404`        |

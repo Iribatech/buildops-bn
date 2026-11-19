@@ -304,7 +304,11 @@ export class RoleController {
     @OrgAuth() auth: OrganizationAuthContext,
     @Body() dto: CreateRoleDto,
   ): Promise<RoleResponseDto> {
-    const role = await this.roleService.createRole(auth.organizationId, dto);
+    const role = await this.roleService.createRole(
+      auth.organizationId,
+      auth.userId,
+      dto,
+    );
     return role.toResponseWithPermissions();
   }
 

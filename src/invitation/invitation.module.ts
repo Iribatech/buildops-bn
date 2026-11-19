@@ -2,9 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from '../auth/auth.module.js';
+import { Department } from '../department/department.entity.js';
+import { EmployeeModule } from '../employee/employee.module.js';
 import { MailModule } from '../mail/mail.module.js';
 import { Organization } from '../organization/organization.entity.js';
 import { RoleModule } from '../role/role.module.js';
+import { TeamModule } from '../team/team.module.js';
+import { Team } from '../team/team.entity.js';
 import { UserModule } from '../user/user.module.js';
 import { InvitationAcceptController } from './invitation-accept.controller.js';
 import { InvitationController } from './invitation.controller.js';
@@ -23,7 +27,12 @@ import { InvitationService } from './invitation.service.js';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrganizationInvitation, Organization]),
+    TypeOrmModule.forFeature([
+      OrganizationInvitation,
+      Organization,
+      Department,
+      Team,
+    ]),
     // `@Protected()` on the organization-scoped controller resolves through
     // `JwtAuthGuard`, which is provided by `AuthModule` the same way
     // `RoleModule` needs it. `RoleModule` supplies the `MembershipResolver`
@@ -32,6 +41,10 @@ import { InvitationService } from './invitation.service.js';
     RoleModule,
     UserModule,
     MailModule,
+    // Acceptance applies the HR context the invitation carries: an employee
+    // record in the chosen department and a membership of the chosen team.
+    EmployeeModule,
+    TeamModule,
   ],
   controllers: [InvitationController, InvitationAcceptController],
   providers: [InvitationService],

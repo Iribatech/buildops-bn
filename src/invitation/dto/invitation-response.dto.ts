@@ -17,6 +17,13 @@ export class InvitationResponseDto {
   @ApiProperty({ example: 'developer' })
   templateKey: string;
 
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The role row this invitation grants on acceptance, when the inviter named one.',
+  })
+  roleId: string | null;
+
   @ApiProperty({ example: 'Developer' })
   roleName: string;
 
@@ -48,6 +55,18 @@ export class InvitationResponseDto {
 
   @ApiProperty({ example: '2026-10-06T09:00:00.000Z' })
   createdAt: Date;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The department the invitee joins on acceptance (HR context).',
+  })
+  departmentId: string | null;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The team the invitee joins on acceptance (HR context).',
+  })
+  teamId: string | null;
 }
 
 /**
@@ -116,6 +135,24 @@ export class InvitationPreviewResponseDto {
       'Whether an account already exists for this address. False is the answer that makes the next step ask for a name and a password.',
   })
   accountExists: boolean;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The department the invitee joins on acceptance, when chosen.',
+  })
+  departmentId: string | null;
+
+  @ApiPropertyOptional({ example: 'Delivery' })
+  departmentName: string | null;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The team the invitee joins on acceptance, when chosen.',
+  })
+  teamId: string | null;
+
+  @ApiPropertyOptional({ example: 'Structures' })
+  teamName: string | null;
 }
 
 /** What accepting an invitation hands to the caller. */

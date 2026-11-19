@@ -132,6 +132,65 @@ export class AttachmentController {
     );
   }
 
+  @Post('chat-upload')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.CHAT_CREATE)
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload a file into a chat channel',
+    description:
+      'Multipart upload with the file in the `file` field and the room in ' +
+      '`channelId`. The caller has to be able to see the room.',
+  })
+  @ApiResponse({
+    description: 'The stored attachment',
+    status: 201,
+    type: AttachmentResponseDto,
+  })
+  @ApiErrors(400, 401, 403, 404)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadForChat(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @UploadedFile() file: any,
+    @Query('channelId') channelId?: string,
+  ) {
+    return this.attachmentService.upload(auth.organizationId, auth.userId, file, {
+      channelId,
+    });
+  }
+
+  @Get('chat/:attachmentId/download')
+  @OrganizationHeader()
+  @RequirePermissions(PERMISSIONS.CHAT_VIEW)
+  @ApiOperation({
+    summary: 'Download a chat attachment',
+    description:
+      'Streams a file attached to a chat message. Requires the same chat ' +
+      'access as the room it was sent in.',
+  })
+  @ApiResponse({
+    description: 'The file contents',
+    status: 200,
+  })
+  @ApiErrors(401, 403, 404)
+  async downloadForChat(
+    @OrgAuth() auth: OrganizationAuthContext,
+    @Param('attachmentId') attachmentId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { file, attachment } = await this.attachmentService.download(
+      auth.organizationId,
+      auth,
+      attachmentId,
+    );
+    res.set({
+      'Content-Type': attachment.mimeType,
+      'Content-Disposition': `inline; filename="${encodeURIComponent(attachment.originalName)}"`,
+    });
+    return file;
+  }
+
+
   @Get('task/:taskId')
   @OrganizationHeader()
   @RequirePermissions(PERMISSIONS.TASK_VIEW)

@@ -86,8 +86,12 @@ function makeService(options: { invitation?: OrganizationInvitation } = {}) {
   const service = new InvitationService(
     invitationRepo as never,
     organizationRepo as never,
+    { findOne: jest.fn(async () => null) } as never,
+    { findOne: jest.fn(async () => null) } as never,
     roleService as never,
     { findByEmail: jest.fn(async () => null) } as never,
+    { ensureFromInvitation: jest.fn(async () => undefined) } as never,
+    { addMember: jest.fn(async () => undefined) } as never,
     {} as never,
     {} as never,
     { get: jest.fn() } as never,

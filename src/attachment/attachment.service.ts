@@ -14,6 +14,8 @@ import { Project } from '../project/project.entity.js';
 import { Comment } from '../comment/comment.entity.js';
 import { DocumentAccessService, type DocumentViewer } from '../document/document-access.service.js';
 import { PERMISSIONS } from '../common/permissions.js';
+import { ChatService } from '../chat/chat.service.js';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +37,8 @@ export class AttachmentService {
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
     private readonly documentAccess: DocumentAccessService,
+    private readonly chatService: ChatService,
+
   ) {
     if (!fs.existsSync(UPLOAD_DIR)) {
       fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -60,18 +64,42 @@ export class AttachmentService {
     organizationId: string,
     uploaderId: string,
     file: any,
-    meta: { taskId?: string; subtaskId?: string; commentId?: string },
+    meta: {
+      taskId?: string;
+      subtaskId?: string;
+      commentId?: string;
+      channelId?: string;
+    },
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    if (!meta.taskId && !meta.subtaskId && !meta.commentId) {
-      throw new BadRequestException('taskId, subtaskId, or commentId required');
+    if (
+      !meta.taskId &&
+      !meta.subtaskId &&
+      !meta.commentId &&
+      !meta.channelId
+    ) {
+      throw new BadRequestException(
+        'taskId, subtaskId, commentId, or channelId required',
+      );
     }
 
     let projectId: string | null = null;
     let taskId: string | null = meta.taskId || null;
     let subtaskId: string | null = meta.subtaskId || null;
 
-    if (meta.commentId) {
+    if (meta.channelId) {
+      // `getChannel` proves the uploader may see the room (and joins the
+      // scoped rooms on the way); the attachment itself hangs off whatever
+      // project/task the room belongs to, so a task room still lists it.
+      const channel = await this.chatService.getChannel(
+        organizationId,
+        meta.channelId,
+        uploaderId,
+      );
+      projectId = channel.projectId;
+      taskId = channel.taskId;
+      subtaskId = channel.subtaskId;
+    } else if (meta.commentId) {
       const comment = await this.commentRepo.findOne({ where: { id: meta.commentId } });
       if (!comment || comment.organizationId !== organizationId) {
         throw new NotFoundException('Comment not found');

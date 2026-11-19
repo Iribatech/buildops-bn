@@ -15,6 +15,8 @@ import { ActivityService } from '../activity/activity.service.js';
 import { User } from '../user/user.entity.js';
 import { Project } from '../project/project.entity.js';
 import { RoleService } from '../role/role.service.js';
+import { TeamService } from '../team/team.service.js';
+import type { PermissionName } from '../common/permissions.js';
 import { Subtask } from './subtask.entity.js';
 import {
   AssignedSubtaskResponseDto,
@@ -57,6 +59,7 @@ export class SubtaskService {
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
     private readonly roleService: RoleService,
+    private readonly teams: TeamService,
     private readonly notifications: NotificationService,
     private readonly activity: ActivityService,
   ) {}
@@ -191,8 +194,22 @@ export class SubtaskService {
     taskId: string,
     actorId: string,
     dto: CreateSubtaskDto,
+    permissions: readonly PermissionName[] = [],
   ): Promise<Subtask> {
     const task = await this.requireTask(organizationId, taskId);
+
+    if (task.teamId) {
+      await this.teams.assertCanManageTeamWork(
+        organizationId,
+        task.teamId,
+        actorId,
+        permissions,
+      );
+
+      if (dto.assignedTo) {
+        await this.teams.assertActiveMember(task.teamId, dto.assignedTo);
+      }
+    }
 
     const assignedTo = await this.resolveAssignee(
       organizationId,
@@ -352,8 +369,10 @@ export class SubtaskService {
     subtaskId: string,
     actorId: string,
     dto: UpdateSubtaskDto,
+    permissions: readonly PermissionName[] = [],
   ): Promise<Subtask> {
     const subtask = await this.findOne(organizationId, subtaskId);
+    const task = await this.requireTask(organizationId, subtask.taskId);
     const previousAssignee = subtask.assignedTo;
 
     /**
@@ -371,6 +390,19 @@ export class SubtaskService {
     let assignedTo: string | null | undefined;
 
     if (dto.assignedTo !== undefined) {
+      if (task.teamId) {
+        await this.teams.assertCanManageTeamWork(
+          organizationId,
+          task.teamId,
+          actorId,
+          permissions,
+        );
+
+        if (dto.assignedTo) {
+          await this.teams.assertActiveMember(task.teamId, dto.assignedTo);
+        }
+      }
+
       assignedTo = await this.resolveAssignee(
         organizationId,
         dto.assignedTo ?? undefined,
@@ -414,8 +446,6 @@ export class SubtaskService {
     // not an assignment, and telling somebody their work moved when it did not
     // is the kind of notification that trains people to ignore the bell.
     if (assignedTo !== undefined && assignedTo !== previousAssignee) {
-      const task = await this.requireTask(organizationId, subtask.taskId);
-
       await this.announceAssignment({
         organizationId,
         actorId,

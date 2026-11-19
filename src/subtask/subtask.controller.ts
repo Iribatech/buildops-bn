@@ -92,9 +92,9 @@ export class SubtaskController {
   @ApiOperation({
     summary: 'Create a subtask',
     description:
-      'Creates a subtask. When assignedTo is set, the user must be an active ' +
-      'member of the organization the task belongs to. Omit it to leave the ' +
-      'subtask in the unassigned backlog.',
+      'Creates a subtask. On a teamed task, only the team lead or a project ' +
+      'manager may split the work, and an assignee must be an active member ' +
+      'of that team. Omit assignedTo to leave the subtask in the unassigned backlog.',
   })
   @ApiResponse({
     description: 'Subtask created',
@@ -112,6 +112,7 @@ export class SubtaskController {
       taskId,
       auth.userId,
       dto,
+      auth.permissions,
     );
 
     return subtask.toResponse();
@@ -232,6 +233,7 @@ export class SubtaskController {
       subtaskId,
       auth.userId,
       dto,
+      auth.permissions,
     );
 
     return subtask.toResponse();

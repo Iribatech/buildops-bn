@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { Membership, MembershipResolver } from '../common/membership.js';
 import {
   DEFAULT_ROLE_TEMPLATES,
   isPermissionName,
+  NON_DELEGATABLE_PERMISSIONS,
   PERMISSIONS,
   ROLE_TEMPLATE_KEYS,
   type PermissionName,
@@ -440,17 +442,22 @@ export class RoleService extends MembershipResolver {
     });
   }
 
-  async createRole(organizationId: string, dto: CreateRoleDto): Promise<Role> {
+  async createRole(
+    organizationId: string,
+    actorUserId: string,
+    dto: CreateRoleDto,
+  ): Promise<Role> {
     const subscription =
       await this.planLimits.requireByOrganizationId(organizationId);
 
     return this.planLimits.locked(subscription.id, (limits, current) =>
-      this.createRoleRow(organizationId, dto, limits, current),
+      this.createRoleRow(organizationId, actorUserId, dto, limits, current),
     );
   }
 
   private async createRoleRow(
     organizationId: string,
+    actorUserId: string,
     dto: CreateRoleDto,
     limits: PlanLimits,
     subscription: Subscription,
@@ -458,6 +465,17 @@ export class RoleService extends MembershipResolver {
     const roles = limits.manager.getRepository(Role);
 
     if (dto.userId) {
+      // Handing a role straight to a member is `role.assign` by another name.
+      // A role creator without that permission may define roles — including
+      // the one HR is about to attach to an invitation — but must not use
+      // creation as a side door into assigning access.
+      const actor = await this.resolve(organizationId, actorUserId);
+      if (!(actor?.permissions ?? []).includes(PERMISSIONS.ROLE_ASSIGN)) {
+        throw new ForbiddenException(
+          'You can create a role but not assign it. Leave it unassigned and let an administrator hand it out.',
+        );
+      }
+
       // The user has to exist and be verified before the seat is counted:
       // assigning to an unknown id would otherwise reach the foreign key and
       // surface as a 500 rather than the 404 the caller can act on.
@@ -471,6 +489,11 @@ export class RoleService extends MembershipResolver {
     }
 
     const permissions = this.validatePermissions(dto.permissions ?? []);
+    await this.assertCanGrantPermissions(
+      organizationId,
+      actorUserId,
+      permissions,
+    );
     const saved = await roles.save(
       roles.create({
         organizationId,
@@ -529,6 +552,11 @@ export class RoleService extends MembershipResolver {
   ): Promise<Role> {
     const role = await this.findRole(organizationId, roleId);
     const permissions = this.validatePermissions(dto.permissions);
+    await this.assertCanGrantPermissions(
+      organizationId,
+      actorUserId,
+      permissions,
+    );
 
     // A member editing their own role is the one edit that can strand the whole
     // organization: dropping `role.update` from the role that grants it means
@@ -868,6 +896,39 @@ export class RoleService extends MembershipResolver {
     }
 
     return [...new Set(names)] as PermissionName[];
+  }
+
+  /**
+   * Enforces "you cannot grant what you do not hold".
+   *
+   * The editor already disables permissions above the caller's own access, but
+   * the API is the only enforcement point: a custom role that may create roles
+   * (HR, for instance) must not be able to send a `role.create` request that
+   * mints `role.delete` for itself. The Owner holds the whole catalogue, so the
+   * ceiling never bites them; every other creator is capped at their own set.
+   *
+   * `organization.delete` is refused for everybody, including the owner, since
+   * it is not a delegable capability at all.
+   */
+  private async assertCanGrantPermissions(
+    organizationId: string,
+    actorUserId: string,
+    permissions: PermissionName[],
+  ): Promise<void> {
+    const actor = await this.resolve(organizationId, actorUserId);
+    const held = new Set<PermissionName>(actor?.permissions ?? []);
+
+    const blocked = permissions.filter(
+      (permission) =>
+        NON_DELEGATABLE_PERMISSIONS.includes(permission) ||
+        !held.has(permission),
+    );
+
+    if (blocked.length) {
+      throw new ForbiddenException(
+        `You cannot grant permission(s) you do not hold: ${blocked.join(', ')}. Ask an owner to create a role with wider access.`,
+      );
+    }
   }
 
   private async replacePermissionRows(

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthorizationModule } from '../auth/authorization.module.js';
+import { ChatModule } from '../chat/chat.module.js';
 import { Attachment } from './attachment.entity.js';
 import { AttachmentController } from './attachment.controller.js';
 import { AttachmentService } from './attachment.service.js';
@@ -16,6 +17,8 @@ import { DocumentModule } from '../document/document.module.js';
     AuthModule,
     AuthorizationModule,
     DocumentModule,
+    ChatModule,
+
     TypeOrmModule.forFeature([Attachment, Task, Subtask, Project, Comment]),
   ],
   controllers: [AttachmentController],

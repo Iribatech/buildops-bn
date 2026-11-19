@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Organization } from '../organization/organization.entity.js';
+import { Department } from '../department/department.entity.js';
 import { RoleModule } from '../role/role.module.js';
 import { User } from '../user/user.entity.js';
 import { UserModule } from '../user/user.module.js';
@@ -15,7 +16,7 @@ import { AuthModule } from '../auth/auth.module.js';
   imports: [
     AuthModule,
     AuthorizationModule,
-    TypeOrmModule.forFeature([Team, TeamMember, Organization, User]),
+    TypeOrmModule.forFeature([Team, TeamMember, Organization, User, Department]),
     UserModule,
     RoleModule,
   ],
