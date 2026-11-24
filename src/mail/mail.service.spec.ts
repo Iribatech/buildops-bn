@@ -17,45 +17,27 @@ describe('MailService', () => {
   let config: any;
   let mockSendMail: any;
 
-  beforeEach(async () => {
-    jest.clearAllMocks();
+  const values: Record<string, string | undefined> = {
+    EMAIL_FROM: 'no-reply@example.com',
+    APP_BASE_URL: 'http://localhost:3000',
+    SMTP_HOST: 'smtp.brevo.com',
+    SMTP_PORT: '587',
+    SMTP_SECURE: 'false',
+    SMTP_USER: 'brevo-account@example.com',
+    BREVO_API_KEY: 'brevo-api-key',
+  };
 
-    mockSendMail = jest.fn(async () => ({
-      messageId: 'test-message-id',
-    }));
-
-    mockCreateTransport.mockReturnValue({
-      sendMail: mockSendMail,
-    });
-
+  async function createMailService(
+    overrides: Record<string, string | undefined> = {},
+  ) {
     config = {
-      get: jest.fn((key: string) => {
-        switch (key) {
-          case 'EMAIL_FROM':
-            return 'no-reply@example.com';
-
-          case 'APP_BASE_URL':
-            return 'http://localhost:3000';
-
-          case 'SMTP_HOST':
-            return 'smtp.gmail.com';
-
-          case 'SMTP_PORT':
-            return '465';
-
-          case 'SMTP_SECURE':
-            return 'true';
-
-          case 'SMTP_USER':
-            return 'test@gmail.com';
-
-          case 'SMTP_PASSWORD':
-            return 'test-password';
-
-          default:
-            return '';
-        }
-      }),
+      get: jest.fn(
+        (key: string, fallback?: string) =>
+          ({
+            ...values,
+            ...overrides,
+          })[key] ?? fallback,
+      ),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -68,7 +50,21 @@ describe('MailService', () => {
       ],
     }).compile();
 
-    mailService = moduleRef.get(MailService);
+    return moduleRef.get(MailService);
+  }
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    mockSendMail = jest.fn(async () => ({
+      messageId: 'test-message-id',
+    }));
+
+    mockCreateTransport.mockReturnValue({
+      sendMail: mockSendMail,
+    });
+
+    mailService = await createMailService();
   });
 
   it('sends a verification email via Nodemailer', async () => {
@@ -122,5 +118,38 @@ describe('MailService', () => {
     await expect(
       mailService.sendVerificationEmail('user@example.com', 'token-abc'),
     ).rejects.toThrow('Failed to send email: SMTP connection failed');
+  });
+
+  it('uses Brevo SMTP with the API key as the password', async () => {
+    expect(mockCreateTransport).toHaveBeenCalledWith({
+      host: 'smtp.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'brevo-account@example.com',
+        pass: 'brevo-api-key',
+      },
+    });
+  });
+
+  it('falls back to Brevo defaults and the legacy SMTP password', async () => {
+    await createMailService({
+      SMTP_HOST: undefined,
+      SMTP_PORT: '',
+      SMTP_SECURE: undefined,
+      SMTP_USER: undefined,
+      BREVO_API_KEY: undefined,
+      SMTP_PASSWORD: 'legacy-password',
+    });
+
+    expect(mockCreateTransport).toHaveBeenLastCalledWith({
+      host: 'smtp.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'no-reply@example.com',
+        pass: 'legacy-password',
+      },
+    });
   });
 });

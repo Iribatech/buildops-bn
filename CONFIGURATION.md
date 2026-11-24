@@ -122,12 +122,17 @@ and subscribe at least to `checkout.session.completed` and
 | Variable | Default | Required | Purpose |
 | --- | --- | --- | --- |
 | `APP_BASE_URL` | unset | No | Public frontend origin used to build verification, reset and invitation links. Point it at the frontend, not the raw API, so links open a real page. |
-| `EMAIL_FROM` | `no-reply@localhost` | No | Sender address. It must be accepted by the SMTP server. |
-| `SMTP_HOST` | `smtp.gmail.com` | No | SMTP host. |
-| `SMTP_PORT` | `465` | No | SMTP port. An empty or invalid value falls back to `465`. |
-| `SMTP_SECURE` | `true` | No | `true` for implicit TLS (usually port 465), `false` for STARTTLS (usually port 587). |
-| `SMTP_USER` | unset | No | SMTP username. Omit both user and password for anonymous relays. |
-| `SMTP_PASSWORD` | unset | No | SMTP password. |
+| `EMAIL_FROM` | `no-reply@localhost` | No | Sender address. It must be verified in Brevo. |
+| `SMTP_HOST` | `smtp.brevo.com` | No | Brevo SMTP host. |
+| `SMTP_PORT` | `587` | No | SMTP port. An empty or invalid value falls back to `587`. |
+| `SMTP_SECURE` | `false` | No | `false` for STARTTLS (Brevo port 587), `true` for implicit TLS (port 465). |
+| `SMTP_USER` | `EMAIL_FROM` | No | Brevo account email used to authenticate. |
+| `BREVO_API_KEY` | unset | No | Brevo API key, used as the SMTP password. |
+| `SMTP_PASSWORD` | unset | No | Legacy SMTP password, used only when `BREVO_API_KEY` is unset. |
+
+Outgoing mail uses Brevo SMTP. Create an API key in Brevo, verify the sender
+address and set `BREVO_API_KEY`; no code change is needed for a different SMTP
+relay if the `SMTP_*` values are overridden.
 
 A failed email is logged by `MailService` and does not fail the request that
 triggered it. Outside production, token-bearing responses also return

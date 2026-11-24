@@ -12,29 +12,24 @@ export class MailService {
   private readonly transporter: Transporter;
 
   constructor(private readonly config: ConfigService) {
-    // No provider-specific default: `EMAIL_FROM` has to be an address the
-    // configured SMTP server is willing to relay.
     this.from = this.config.get<string>('EMAIL_FROM', 'no-reply@localhost');
 
     this.transporter = this.createTransport();
   }
 
   private createTransport(): Transporter {
-    const rawPort = Number(this.config.get<string>('SMTP_PORT', '465'));
-    // An empty `SMTP_PORT=` in .env parses to NaN, which nodemailer rejects
-    // with a connection error on every send. Fall back to the SMTPS default.
-    const port = Number.isInteger(rawPort) && rawPort > 0 ? rawPort : 465;
+    const rawPort = Number(this.config.get<string>('SMTP_PORT', '587'));
+    const port = Number.isInteger(rawPort) && rawPort > 0 ? rawPort : 587;
 
-    const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASSWORD');
+    const user = this.config.get<string>('SMTP_USER') || this.from;
+    const pass =
+      this.config.get<string>('BREVO_API_KEY') ||
+      this.config.get<string>('SMTP_PASSWORD');
 
     return nodemailer.createTransport({
-      host: this.config.get<string>('SMTP_HOST', 'smtp.gmail.com'),
+      host: this.config.get<string>('SMTP_HOST', 'smtp.brevo.com'),
       port,
-      secure: this.config.get<string>('SMTP_SECURE', 'true') === 'true',
-      // Sending `auth: { user: undefined, pass: undefined }` makes some
-      // servers answer `535` on an anonymous connection that would have been
-      // accepted; only offer credentials that exist.
+      secure: this.config.get<string>('SMTP_SECURE', 'false') === 'true',
       ...(user && pass ? { auth: { user, pass } } : {}),
     });
   }

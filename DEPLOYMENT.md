@@ -217,7 +217,7 @@ assumed.
 | Login works but refresh fails behind the proxy | Cookies or CORS misconfigured | `ALLOWED_ORIGINS` must be the exact frontend origin; the API sends credentialed CORS responses. |
 | Realtime does not connect through nginx | Missing WebSocket upgrade headers | Configure nginx to upgrade `/realtime` and `/chat`. |
 | Uploads disappear after redeploy | Uploads volume not mounted or removed with `down -v` | Check the `uploads` volume in the compose project. |
-| Emails never arrive | SMTP settings wrong or unreachable | Check `[MailService]` errors in the API log; non-production responses report `emailSent`/`emailError`. |
+| Emails never arrive | Brevo SMTP settings wrong, sender unverified or API key invalid | Check `[MailService]` errors in the API log; non-production responses report `emailSent`/`emailError`. |
 | Notification emails accumulate as `pending` | Worker disabled or SMTP down | Check `NOTIFICATION_EMAIL_INTERVAL_MS` and the API log. |
 
 ## 8. Release checklist
