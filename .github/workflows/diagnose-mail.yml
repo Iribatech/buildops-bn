@@ -1,0 +1,44 @@
+name: Diagnose mail
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          missing=""
+          [ -n "$SSH_KEY" ] || missing="$missing SSH_PRIVATE_KEY"
+          [ -n "$DEPLOY_HOST" ] || missing="$missing SERVER_HOST"
+          [ -n "$DEPLOY_USER" ] || missing="$missing SERVER_USER"
+          if [ -n "$missing" ]; then
+            echo "ERROR: these repository secrets are not set:$missing"
+            exit 1
+          fi
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "$DEPLOY_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIOZoF0APj/t6jnfIRe14brzxWrCcmu7VBdM/iGeb0d5" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          printf 'Host prod\n  HostName %s\n  User %s\n  Port 22\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ~/.ssh/known_hosts\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  BatchMode yes\n' "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+          DEPLOY_USER: ${{ secrets.SERVER_USER }}
+
+      - name: Send test reset and read API logs
+        run: |
+          ssh prod '
+            set -euo pipefail
+            cd /var/www/buildops
+            curl -sS -o /dev/null -w "forgot-password HTTP %{http_code}\n" -X POST http://127.0.0.1:3100/api/v1/auth/forgot-password -H "Content-Type: application/json" -d "{\"email\":\"gavinahishakiye32@gmail.com\"}"
+            sleep 5
+            docker compose -f docker-compose.prod.yml logs --tail 120 api
+          '
