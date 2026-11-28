@@ -101,6 +101,34 @@ jobs:
             chmod 600 /var/www/buildops/.env
           '
 
+      - name: Configure SMTP delivery
+        env:
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SECURE: ${{ vars.SMTP_SECURE }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          ssh prod 'cat > /tmp/buildops-smtp.env' <<EOF
+          EMAIL_FROM=$EMAIL_FROM
+          SMTP_HOST=$SMTP_HOST
+          SMTP_PORT=$SMTP_PORT
+          SMTP_SECURE=$SMTP_SECURE
+          SMTP_USER=$SMTP_USER
+          SMTP_PASSWORD=$SMTP_PASSWORD
+          EOF
+          ssh prod '
+            set -euo pipefail
+            file=/var/www/buildops/.env
+            for key in EMAIL_FROM SMTP_HOST SMTP_PORT SMTP_SECURE SMTP_USER SMTP_PASSWORD BREVO_API_KEY; do
+              sed -i "/^${key}=/d" "$file"
+            done
+            cat /tmp/buildops-smtp.env >> "$file"
+            chmod 600 "$file"
+            rm -f /tmp/buildops-smtp.env
+          '
+
       # Streamed straight into `docker load`, so no registry is involved and
       # no credentials are needed on the server to pull.
       - name: Ship image and compose file
