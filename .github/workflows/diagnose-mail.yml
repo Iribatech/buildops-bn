@@ -38,8 +38,10 @@ jobs:
           ssh prod bash -s <<'REMOTE'
           set -euo pipefail
           cd /var/www/buildops
-          for port in 465 587; do
-            if timeout 5 bash -c ":</dev/tcp/smtp.gmail.com/$port" 2>/dev/null; then echo "gmail:$port reachable"; else echo "gmail:$port blocked"; fi
+          for endpoint in smtp.gmail.com:465 smtp.gmail.com:587 smtp-relay.brevo.com:2525 smtp-relay.brevo.com:587 smtp.mailgun.org:2525 smtp.sendgrid.net:2525 smtp.resend.com:587 smtp.office365.com:587; do
+            host=${endpoint%:*}
+            port=${endpoint##*:}
+            if timeout 5 bash -c ":</dev/tcp/$host/$port" 2>/dev/null; then echo "$endpoint reachable"; else echo "$endpoint blocked"; fi
           done
           curl -sS -o /dev/null -w "forgot-password HTTP %{http_code}\n" -X POST http://127.0.0.1:3100/api/v1/auth/forgot-password -H "Content-Type: application/json" -d '{"email":"gavinahishakiye32@gmail.com"}'
           docker compose -f docker-compose.prod.yml exec -T api env | grep -E '^(SMTP_HOST|SMTP_PORT|SMTP_SECURE|SMTP_USER|EMAIL_FROM)=' | sort
