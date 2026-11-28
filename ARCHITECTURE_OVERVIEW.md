@@ -21,7 +21,7 @@ Browser / mobile / scripts
         | WS    /realtime, /chat
         v
    +-----------------+        +------------------+
-   | nginx (prod)    |        | Brevo SMTP       |
+   | nginx (prod)    |        | SMTP relay       |
    | TLS + vhost     |        | (nodemailer)     |
    +--------+--------+        +---------^--------+
             |                           |
@@ -257,7 +257,7 @@ organization, project, task and entity timelines.
 In-app notifications are written directly. Emails are written to a durable
 `notification_emails` outbox in the same transaction as the notification, then a
 background worker claims due rows with `FOR UPDATE SKIP LOCKED`, sends them over
-Brevo SMTP, and retries with exponential backoff. A failed send is a retryable row,
+SMTP, and retries with exponential backoff. A failed send is a retryable row,
 not a lost promise. The worker can be disabled with
 `NOTIFICATION_EMAIL_INTERVAL_MS=0`, which the e2e suite uses.
 
@@ -287,7 +287,7 @@ subscription state checks.
 
 ### Mail
 
-`MailService` owns Brevo SMTP and templates. In non-production, token-bearing flows
+`MailService` owns SMTP delivery and templates. In non-production, token-bearing flows
 also return the raw token and link in the response (`verificationToken`,
 `resetToken`, and so on) together with `emailSent`/`emailError`, so local flows
 can be tested without SMTP. Production never exposes those fields.

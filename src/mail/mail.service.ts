@@ -14,22 +14,26 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     this.from = this.config.get<string>('EMAIL_FROM', 'no-reply@localhost');
 
+    if (!this.config.get<string>('SMTP_PASSWORD')) {
+      this.logger.warn(
+        'SMTP_PASSWORD is not configured; email delivery will fail.',
+      );
+    }
+
     this.transporter = this.createTransport();
   }
 
   private createTransport(): Transporter {
-    const rawPort = Number(this.config.get<string>('SMTP_PORT', '587'));
-    const port = Number.isInteger(rawPort) && rawPort > 0 ? rawPort : 587;
+    const rawPort = Number(this.config.get<string>('SMTP_PORT', '465'));
+    const port = Number.isInteger(rawPort) && rawPort > 0 ? rawPort : 465;
 
     const user = this.config.get<string>('SMTP_USER') || this.from;
-    const pass =
-      this.config.get<string>('BREVO_API_KEY') ||
-      this.config.get<string>('SMTP_PASSWORD');
+    const pass = this.config.get<string>('SMTP_PASSWORD', '');
 
     return nodemailer.createTransport({
-      host: this.config.get<string>('SMTP_HOST', 'smtp.brevo.com'),
+      host: this.config.get<string>('SMTP_HOST', 'localhost'),
       port,
-      secure: this.config.get<string>('SMTP_SECURE', 'false') === 'true',
+      secure: this.config.get<string>('SMTP_SECURE', 'true') === 'true',
       ...(user && pass ? { auth: { user, pass } } : {}),
     });
   }

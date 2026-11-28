@@ -20,11 +20,11 @@ describe('MailService', () => {
   const values: Record<string, string | undefined> = {
     EMAIL_FROM: 'no-reply@example.com',
     APP_BASE_URL: 'http://localhost:3000',
-    SMTP_HOST: 'smtp.brevo.com',
-    SMTP_PORT: '587',
-    SMTP_SECURE: 'false',
-    SMTP_USER: 'brevo-account@example.com',
-    BREVO_API_KEY: 'brevo-api-key',
+    SMTP_HOST: 'smtp.gmail.com',
+    SMTP_PORT: '465',
+    SMTP_SECURE: 'true',
+    SMTP_USER: 'sender@example.com',
+    SMTP_PASSWORD: 'app-password',
   };
 
   async function createMailService(
@@ -120,35 +120,34 @@ describe('MailService', () => {
     ).rejects.toThrow('Failed to send email: SMTP connection failed');
   });
 
-  it('uses Brevo SMTP with the API key as the password', async () => {
+  it('uses the configured SMTP settings', async () => {
     expect(mockCreateTransport).toHaveBeenCalledWith({
-      host: 'smtp.brevo.com',
-      port: 587,
-      secure: false,
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
-        user: 'brevo-account@example.com',
-        pass: 'brevo-api-key',
+        user: 'sender@example.com',
+        pass: 'app-password',
       },
     });
   });
 
-  it('falls back to Brevo defaults and the legacy SMTP password', async () => {
+  it('falls back to the SMTP defaults', async () => {
     await createMailService({
       SMTP_HOST: undefined,
       SMTP_PORT: '',
       SMTP_SECURE: undefined,
       SMTP_USER: undefined,
-      BREVO_API_KEY: undefined,
-      SMTP_PASSWORD: 'legacy-password',
+      SMTP_PASSWORD: 'fallback-password',
     });
 
     expect(mockCreateTransport).toHaveBeenLastCalledWith({
-      host: 'smtp.brevo.com',
-      port: 587,
-      secure: false,
+      host: 'localhost',
+      port: 465,
+      secure: true,
       auth: {
         user: 'no-reply@example.com',
-        pass: 'legacy-password',
+        pass: 'fallback-password',
       },
     });
   });

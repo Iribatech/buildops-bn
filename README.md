@@ -104,7 +104,7 @@ Copy `.env.example` to `.env`. Key settings:
 - `BILLING_PROVIDER` - `stub` (the default: payments bypassed, every plan granted free, no Stripe keys needed) or `stripe` (real payments; needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`)
 - `TRIAL_DAYS` - Free trial length (default: 14)
 - `APP_BASE_URL` - For email links
-- `BREVO_API_KEY` - Brevo API key used to send mail over Brevo SMTP; verify `EMAIL_FROM` in Brevo
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` - SMTP relay settings (Gmail: `smtp.gmail.com`, `465`, account address, app password)
 
 In development, verification/reset tokens are returned in API responses for easy testing without SMTP.
 
