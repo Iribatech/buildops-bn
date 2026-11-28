@@ -39,7 +39,7 @@ jobs:
             set -euo pipefail
             cd /var/www/buildops
             curl -sS -o /dev/null -w "forgot-password HTTP %{http_code}\n" -X POST http://127.0.0.1:3100/api/v1/auth/forgot-password -H "Content-Type: application/json" -d "{\"email\":\"gavinahishakiye32@gmail.com\"}"
-            docker compose -f docker-compose.prod.yml exec -T api sh -c 'for k in SMTP_HOST SMTP_PORT SMTP_SECURE SMTP_USER EMAIL_FROM; do printf "%s=%s\n" "$k" "$(printenv "$k" || true)"; done'
+            docker compose -f docker-compose.prod.yml exec -T api sh -c "for k in SMTP_HOST SMTP_PORT SMTP_SECURE SMTP_USER EMAIL_FROM; do printf \"%s=%s\\n\" \"\$k\" \"\$(printenv \"\$k\" || true)\"; done"
             sleep 20
             docker compose -f docker-compose.prod.yml logs --since 2m api | grep -E 'MailService|SMTP' || true
           '
